@@ -9,14 +9,22 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{overflow:hidden;background:#111;font-family:system-ui;}
 
-#viewport{width:100vw;height:100vh;overflow:hidden;position:relative;}
+#viewport{
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  position:fixed;   /* ⭐ quan trọng */
+  left:0;
+  top:0;
+}
+
 #map{
   position:absolute;
   width:2400px;
   height:2400px;
-  left:0;
-  top:0;
+  will-change: transform; /* ⭐ mượt mobile */
 }
+
 
 
 #grass{
@@ -289,19 +297,18 @@ function centerCamera(){
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const camX = vw/2 - px - 48; // 48 = nửa player
-  const camY = vh/2 - py - 48;
+  let camX = vw/2 - px - 48;
+  let camY = vh/2 - py - 48;
 
- function centerCamera(){
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const maxX = 0;
+  const maxY = 0;
+  const minX = vw - map.offsetWidth;
+  const minY = vh - map.offsetHeight;
 
-  const camX = vw/2 - px - 48;
-  const camY = vh/2 - py - 48;
+  camX = Math.min(maxX, Math.max(minX, camX));
+  camY = Math.min(maxY, Math.max(minY, camY));
 
-  map.style.left = camX + "px";
-  map.style.top  = camY + "px";
-}
+  map.style.transform = `translate(${camX}px, ${camY}px)`;
 }
 
 loop();
@@ -460,6 +467,5 @@ document.querySelectorAll(".orange").forEach(tree=>{
 
 </body>
 </html>
-
 
 
