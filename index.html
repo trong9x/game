@@ -256,18 +256,38 @@ function checkAutoDialog(){
 /* ===== MOVE LOOP ===== */
 function loop(){
   let nx=px, ny=py;
+
   if(key.w||key.arrowup) ny-=speed;
   if(key.s||key.arrowdown) ny+=speed;
   if(key.a||key.arrowleft) nx-=speed;
   if(key.d||key.arrowright) nx+=speed;
 
-  if(!hitTest(nx,ny)){ px=nx; py=ny; }
+  if(!hitTest(nx,ny)){
+    px=nx; 
+    py=ny;
+  }
+
   player.style.left=px+"px";
   player.style.top=py+"px";
+
+  // ⭐ CAMERA FOLLOW PLAYER
+  centerCamera();
 
   checkAutoDialog();
   requestAnimationFrame(loop);
 }
+const map = document.getElementById("map");
+
+function centerCamera(){
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const camX = vw/2 - px - 48; // 48 = nửa player
+  const camY = vh/2 - py - 48;
+
+  map.style.transform = `translate(${camX}px, ${camY}px)`;
+}
+
 loop();
 
 /* ===== DIALOG ===== */
@@ -424,3 +444,4 @@ document.querySelectorAll(".orange").forEach(tree=>{
 
 </body>
 </html>
+
