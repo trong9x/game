@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>2D RPG Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{overflow:hidden;background:#111;font-family:system-ui;}
+
+#viewport{width:100vw;height:100vh;overflow:hidden;position:relative;}
+#map{position:absolute;width:2400px;height:2400px;}
+
+#grass{
+  position:absolute;inset:0;
+  background:url("img/co.png") repeat;
+  filter:saturate(.9) brightness(.95);
+}
+
+.tree{
+  position:absolute;width:160px;height:200px;
+  background:url("img/cay.png") center/contain no-repeat;
+}
+.fence{
+  position:absolute;width:64px;height:64px;
+  background:url("img/rao.png") center/contain no-repeat;
+}
+
+.char{
+  position:absolute;width:96px;height:96px;
+  background:center/contain no-repeat;
+}
+
+.name{
+  position:absolute;top:-18px;width:100%;
+  text-align:center;font-size:12px;font-weight:bold;
+  color:#000;text-shadow:0 1px 2px #fff;
+}
+
+.tree::after,.char::after{
+  content:"";position:absolute;bottom:10px;left:50%;
+  width:50%;height:12px;background:rgba(0,0,0,.3);
+  filter:blur(6px);transform:translateX(-50%);
+  z-index:-1;
+}
+
+/* DIALOG */
+#dialog{
+  position:fixed;bottom:30px;left:50%;
+  transform:translateX(-50%);
+  width:360px;background:#fff;border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.3);
+  padding:14px;display:none;z-index:999;
+}
+#dialog .name{font-weight:bold;margin-bottom:6px;}
+#dialog .text{font-size:14px;line-height:1.4;}
+#dialog .actions{text-align:right;margin-top:10px;}
+#dialog button{
+  padding:4px 10px;border:none;border-radius:6px;
+  background:#4caf50;color:#fff;cursor:pointer;margin-left:6px;
+}
+/* ===== MOBILE UI ===== */
+#mobileUI{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+
+/* joystick */
+#joy{
+  position:absolute;
+  left:25px;
+  bottom:25px;
+  width:110px;
+  height:110px;
+  background:rgba(255,255,255,.15);
+  border-radius:50%;
+  pointer-events:auto;
+  touch-action:none;
+}
+
+#stick{
+  position:absolute;
+  width:55px;
+  height:55px;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(255,255,255,.5);
+  border-radius:50%;
+}
+
+/* buttons */
+#btnTalk,#btnQuest{
+  position:absolute;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  border:none;
+  font-size:20px;
+  background:#4caf50;
+  color:#fff;
+  pointer-events:auto;
+}
+
+#btnTalk{ right:25px; bottom:100px; }
+#btnQuest{ right:25px; bottom:25px; }
+#bag{
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:#000c;
+  color:#fff;
+  padding:8px 14px;
+  border-radius:10px;
+  font-size:14px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="viewport">
+<div id="map">
+  <div id="grass"></div>
+
+  <!-- MAP -->
+  <div class="tree block" style="left:300px;top:260px"></div>
+  <div class="tree block" style="left:360px;top:300px"></div>
+  <div class="tree block" style="left:420px;top:260px"></div>
+  <div class="tree block" style="left:700px;top:420px"></div>
+  <div class="tree block" style="left:760px;top:460px"></div>
+  <div class="tree orange" style="left:650px;top:360px"></div>
+
+  <div class="fence block" style="left:1000px;top:300px"></div>
+  <div class="fence block" style="left:1064px;top:300px"></div>
+  <div class="fence block" style="left:1128px;top:300px"></div>
+
+  <!-- PLAYER -->
+  <div class="char" id="player"
+    style="left:520px;top:420px;background-image:url('img/char1.png')">
+    <div class="name">明重</div>
+  </div>
+
+  <!-- NPC -->
+  <div class="char npc"
+    data-name="NPC 1"
+    data-vi="Bạn giúp tôi hái 1 quả quýt nhé?"
+    data-zh="可以帮我摘一个橘子吗？"
+    data-quest="pick_orange"
+    style="left:440px;top:420px;background-image:url('img/char2.png')">
+    <div class="name">NPC 1</div>
+  </div>
+
+  <div class="char npc"
+    data-name="NPC 2"
+    data-vi="Hôm nay thời tiết đẹp thật."
+    data-zh="今天天气真不错。"
+    style="left:600px;top:420px;background-image:url('img/char3.png')">
+    <div class="name">NPC 2</div>
+  </div>
+</div>
+</div>
+
+<!-- DIALOG -->
+<div id="dialog">
+  <div class="name" id="dName"></div>
+  <div class="text" id="dText"></div>
+   <div class="actions" id="dialogActions">
+    <button onclick="toggleLang()">VI / 中</button>
+    <button onclick="closeDialog()">Đóng</button>
+  </div>
+ 
+
+</div>
+<!-- MOBILE CONTROLS -->
+<div id="mobileUI">
+
+  <!-- JOYSTICK -->
+  <div id="joy">
+    <div id="stick"></div>
+  </div>
+
+  <!-- BUTTONS -->
+  <button id="btnTalk">💬</button>
+  <button id="btnQuest">Q</button>
+
+</div>
+
+<!-- BAG (ngoài mobileUI) -->
+<div id="bag">
+  🎒 Cam: <span id="orangeCount">0</span>
+</div>
+
+
+<script>
+/* ===== INIT ===== */
+const player = document.getElementById("player");
+const npcs = document.querySelectorAll(".npc");
+const blocks = document.querySelectorAll(".block");
+const npcTriggered = new Set();
+
+const dialog = document.getElementById("dialog");
+const dName = document.getElementById("dName");
+const dText = document.getElementById("dText");
+const dialogActions = document.getElementById("dialogActions");
+
+let px = player.offsetLeft;
+let py = player.offsetTop;
+const speed = 4;
+const key = {};
+
+let currentNPC = null;
+let lang = "vi";
+
+/* ===== QUEST ===== */
+let quest = { active:false, done:false, id:null };
+
+/* ===== INPUT ===== */
+document.addEventListener("keydown",e=>key[e.key.toLowerCase()]=true);
+document.addEventListener("keyup",e=>key[e.key.toLowerCase()]=false);
+
+/* ===== COLLISION ===== */
+function hitTest(nx,ny){
+  const pw=30, ph=20;
+  const fx=nx+33, fy=ny+76;
+  for(const b of blocks){
+    const bx=b.offsetLeft, bw=b.offsetWidth;
+    const by=b.offsetTop+b.offsetHeight-40;
+    if(fx<bw+bx && fx+pw>bx && fy<by+40 && fy+ph>by) return true;
+  }
+  return false;
+}
+
+/* ===== DISTANCE ===== */
+function distance(a,b){
+  return Math.hypot(
+    a.offsetLeft-b.offsetLeft,
+    a.offsetTop-b.offsetTop
+  );
+}
+
+/* ===== AUTO NPC ===== */
+function checkAutoDialog(){
+  if(currentNPC) return;
+  npcs.forEach(npc=>{
+    if(distance(player,npc)<70 && !npcTriggered.has(npc)){
+      npcTriggered.add(npc);
+      openDialog(npc);
+    }
+  });
+}
+
+/* ===== MOVE LOOP ===== */
+function loop(){
+  let nx=px, ny=py;
+  if(key.w||key.arrowup) ny-=speed;
+  if(key.s||key.arrowdown) ny+=speed;
+  if(key.a||key.arrowleft) nx-=speed;
+  if(key.d||key.arrowright) nx+=speed;
+
+  if(!hitTest(nx,ny)){ px=nx; py=ny; }
+  player.style.left=px+"px";
+  player.style.top=py+"px";
+
+  checkAutoDialog();
+  requestAnimationFrame(loop);
+}
+loop();
+
+/* ===== DIALOG ===== */
+function openDialog(npc){
+  if(currentNPC===npc) return;
+  currentNPC=npc; lang="vi";
+  dName.textContent=npc.dataset.name;
+
+  if(npc.dataset.quest && !quest.done && !quest.active){
+    dText.textContent=npc.dataset.vi;
+    dialogActions.innerHTML=`
+      <button onclick="acceptQuest('${npc.dataset.quest}')">Nhận nhiệm vụ</button>
+      <button onclick="toggleLang()">VI / 中</button>
+      <button onclick="closeDialog()">Đóng</button>`;
+  }else{
+    dText.textContent=npc.dataset.vi;
+    dialogActions.innerHTML=`
+      <button onclick="toggleLang()">VI / 中</button>
+      <button onclick="closeDialog()">Đóng</button>`;
+  }
+  dialog.style.display="block";
+}
+
+function toggleLang(){
+  if(!currentNPC) return;
+  lang=lang==="vi"?"zh":"vi";
+  dText.textContent=currentNPC.dataset[lang];
+}
+
+function closeDialog(){
+  dialog.style.display="none";
+  currentNPC=null;
+}
+
+/* ===== QUEST ACTION ===== */
+function acceptQuest(id){
+  quest.active=true; quest.id=id;
+  alert("🎯 Nhận nhiệm vụ: Hái 1 quả quýt!");
+  closeDialog();
+}
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="q" && quest.active){
+    quest.active=false; quest.done=true;
+    alert("✅ Hoàn thành nhiệm vụ! +100 vàng 🪙");
+  }
+});
+/* =======================
+   MOBILE CONTROLS
+======================= */
+
+const joy = document.getElementById("joy");
+const stick = document.getElementById("stick");
+const btnTalk = document.getElementById("btnTalk");
+const btnQuest = document.getElementById("btnQuest");
+
+let joyActive = false;
+
+function resetStick(){
+  stick.style.left="50%";
+  stick.style.top="50%";
+}
+
+/* joystick move */
+joy.addEventListener("touchstart",()=> joyActive=true);
+
+joy.addEventListener("touchend",()=>{
+  joyActive=false;
+  resetStick();
+});
+
+joy.addEventListener("touchmove",e=>{
+  if(!joyActive) return;
+
+  const rect = joy.getBoundingClientRect();
+  const t = e.touches[0];
+
+  const dx = t.clientX - rect.left - rect.width/2;
+  const dy = t.clientY - rect.top - rect.height/2;
+
+  const max = 35;
+  const dist = Math.hypot(dx,dy);
+  const angle = Math.atan2(dy,dx);
+
+  const mx = Math.cos(angle) * Math.min(dist,max);
+  const my = Math.sin(angle) * Math.min(dist,max);
+
+  stick.style.left = 50 + mx/rect.width*100 + "%";
+  stick.style.top  = 50 + my/rect.height*100 + "%";
+
+  /* fake keyboard */
+  key.w = my < -10;
+  key.s = my > 10;
+  key.a = mx < -10;
+  key.d = mx > 10;
+});
+
+/* talk button */
+btnTalk.onclick = ()=>{
+  if(currentNPC) return;
+
+  npcs.forEach(npc=>{
+    if(distance(player,npc)<80){
+      openDialog(npc);
+    }
+  });
+};
+
+/* quest button */
+btnQuest.onclick = ()=>{
+  if(quest.active){
+    quest.active=false;
+    quest.done=true;
+    alert("✅ Hoàn thành nhiệm vụ!");
+  }
+};
+function updateInventory(){
+  document.getElementById("orangeCount").textContent = inventory.orange;
+}
+
+/* ======================
+   INVENTORY
+====================== */
+
+let inventory = {
+  orange: 0
+};
+
+function updateInventory(){
+  document.getElementById("orangeCount").textContent = inventory.orange;
+}
+
+updateInventory();
+/* ======================
+   ORANGE TREE CLICK
+====================== */
+
+document.querySelectorAll(".orange").forEach(tree=>{
+  tree.onclick = ()=>{
+
+    if(distance(player, tree) > 80){
+      alert("Lại gần cây hơn 🌳");
+      return;
+    }
+
+    inventory.orange++;
+    updateInventory();
+
+    alert("🍊 +1 cam");
+  };
+});
+
+</script>
+
+</body>
+</html>
