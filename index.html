@@ -10,7 +10,14 @@
 body{overflow:hidden;background:#111;font-family:system-ui;}
 
 #viewport{width:100vw;height:100vh;overflow:hidden;position:relative;}
-#map{position:absolute;width:2400px;height:2400px;}
+#map{
+  position:absolute;
+  width:2400px;
+  height:2400px;
+  left:0;
+  top:0;
+}
+
 
 #grass{
   position:absolute;inset:0;
@@ -285,7 +292,16 @@ function centerCamera(){
   const camX = vw/2 - px - 48; // 48 = nửa player
   const camY = vh/2 - py - 48;
 
-  map.style.transform = `translate(${camX}px, ${camY}px)`;
+ function centerCamera(){
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const camX = vw/2 - px - 48;
+  const camY = vh/2 - py - 48;
+
+  map.style.left = camX + "px";
+  map.style.top  = camY + "px";
+}
 }
 
 loop();
@@ -444,4 +460,6 @@ document.querySelectorAll(".orange").forEach(tree=>{
 
 </body>
 </html>
+
+
 
