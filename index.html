@@ -2,272 +2,209 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>RPG: Level Up System</title>
+    <title>Hỏa Long Mobile - Click to Shop</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <style>
-        :root { --accent: #ffd700; --hp-red: #ff4757; --exp-blue: #2980b9; --ui-bg: rgba(0, 0, 0, 0.7); }
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { width: 100%; height: 100%; overflow: hidden; touch-action: none; background: #1a1a1a; font-family: 'Segoe UI', sans-serif; }
+        :root { --accent: #ffd700; --ui-bg: rgba(0, 0, 0, 0.9); }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: 'Arial', sans-serif; }
+        body { width: 100%; height: 100%; overflow: hidden; background: #111; color: white; }
         
-        #viewport { position: fixed; inset: 0; overflow: hidden; }
-        #map { position: absolute; width: 2400px; height: 2400px; will-change: transform; }
-        #grass { position: absolute; inset: 0; background: url('img/co.png') repeat; background-size: 120px 120px; image-rendering: pixelated; }
-
-        .entity { position: absolute; transform-origin: bottom center; z-index: 10; }
-        .char { width: 80px; height: 80px; background: center/contain no-repeat; transition: transform 0.1s; }
-        .mob { width: 60px; height: 60px; background: url('img/smile.png') center/contain no-repeat; image-rendering: pixelated; }
+        #map { position: absolute; width: 3000px; height: 3000px; background: url('img/co.png') repeat; background-size: 80px; }
+        .entity { position: absolute; transform-origin: bottom center; background-size: contain; background-repeat: no-repeat; background-position: center; z-index: 10; }
         
-        /* UI Top - Đã thêm thanh EXP */
-        #ui-top { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; pointer-events: none; display: flex; flex-direction: column; gap: 8px; }
-        .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        /* Name Tag */
+        .name-tag { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.6); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255, 215, 0, 0.3); }
+        .hp-bar { position: absolute; top: -10px; left: 5px; right: 5px; height: 4px; background: #333; border-radius: 2px; }
+        .hp-fill { height: 100%; background: #ff4757; width: 100%; transition: width 0.1s; }
+
+        #player { width: 50px; height: 50px; background-image: url('img/char1.png'); }
+        #pet { width: 35px; height: 35px; background-image: url('img/smile.png'); filter: drop-shadow(0 0 5px gold); }
+        #pet-weapon { position: absolute; width: 22px; height: 22px; background-image: url('img/vukhi.png'); right: -12px; bottom: 5px; display: none; }
         
-        .player-card { background: var(--ui-bg); padding: 10px 20px; border-radius: 15px; border-left: 5px solid var(--accent); pointer-events: auto; color: white; min-width: 180px; }
-        .level-badge { color: var(--accent); font-weight: 900; font-size: 20px; margin-bottom: 2px; }
+        #npc-merchant { width: 50px; height: 50px; background-image: url('img/char3.png'); }
+        #shop-bg { width: 100px; height: 100px; background-image: url('img/shop.png'); opacity: 0.8; }
+
+        .mob { width: 45px; height: 45px; background-image: url('img/boss.png'); }
+        .gold-drop { width: 20px; height: 20px; background: gold; border-radius: 50%; box-shadow: 0 0 10px gold; }
+
+        /* Nút Tương Tác */
+        #btn-interact { position: fixed; right: 40px; bottom: 160px; width: 70px; height: 70px; background: #e67e22; border: 3px solid white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; z-index: 3000; box-shadow: 0 0 15px rgba(0,0,0,0.5); color: white; }
+
+        /* UI Cửa hàng */
+        #shop-ui { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 5000; display: none; align-items: center; justify-content: center; }
+        .shop-box { background: #2c3e50; padding: 20px; border-radius: 15px; border: 3px solid var(--accent); text-align: center; width: 280px; }
+.buy-btn { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-top: 15px; font-weight: bold; cursor: pointer; }
+
+        #hud { position: fixed; top: 15px; left: 15px; z-index: 1000; }
+        .stat-card { background: var(--ui-bg); padding: 8px 15px; border-radius: 10px; border: 2px solid var(--accent); color: gold; font-weight: bold; }
         
-        .bar-container { width: 200px; height: 10px; background: #333; border-radius: 5px; margin-top: 5px; overflow: hidden; border: 1px solid #000; }
-        #exp-fill { height: 100%; width: 0%; background: var(--exp-blue); transition: width 0.3s; }
-        #hp-fill-ui { height: 100%; width: 100%; background: var(--hp-red); transition: width 0.3s; }
-
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; margin-top: 5px; color: #ddd; }
-
-        /* Level Up Effect */
-        #lvl-up-text { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); color: var(--accent); font-size: 50px; font-weight: 900; text-shadow: 0 0 20px #000; display: none; z-index: 3000; animation: lvlUpAnim 1.5s forwards; }
-        @keyframes lvlUpAnim { 0% { opacity:0; transform: translate(-50%, 0); } 20% { opacity:1; } 80% { opacity:1; } 100% { opacity:0; transform: translate(-50%, -100px); } }
-
-        /* Giữ nguyên các style cũ của bạn */
-        #weapon-hand { position: absolute; width: 50px; height: 50px; background: url('img/vukhi.png') center/contain no-repeat; top: 10px; right: -15px; display: none; }
-        .dmg-popup { position: absolute; color: #fff; font-weight: 900; font-size: 22px; text-shadow: 2px 2px #000; pointer-events: none; z-index: 9999; animation: floatUp 0.6s ease-out forwards; }
-        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
-        .swing-anim { animation: swing 0.15s ease-in-out; }
-        @keyframes swing { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-95deg); } }
-        
-        #mobileUI { position: fixed; inset: 0; pointer-events: none; z-index: 1500; }
-        #joy-container { position: absolute; left: 40px; bottom: 40px; width: 130px; height: 130px; pointer-events: auto; }
-        #joy { width: 100%; height: 100%; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); position: relative; }
-        #stick { position: absolute; width: 50px; height: 50px; background: #fff; border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-        #action-container { position: absolute; right: 30px; bottom: 30px; display: flex; flex-direction: column; gap: 15px; pointer-events: auto; }
-        .btn-mobile { width: 85px; height: 85px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; background: var(--ui-bg); color: white; border: 3px solid rgba(255,255,255,0.2); }
-        #btnAttack { width: 105px; height: 105px; background: rgba(231, 76, 60, 0.6); }
-
-        #shopUI { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; z-index: 2000; align-items: center; justify-content: center; }
-        .shop-content { width: 320px; background: #2c3e50; border-radius: 20px; padding: 25px; color: white; text-align: center; border: 2px solid var(--accent); }
+        #joy { position: fixed; left: 40px; bottom: 40px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 2000; }
+        #stick { position: absolute; width: 40px; height: 40px; background: white; border-radius: 50%; left: 30px; top: 30px; }
+        /* Iframe chứa trang trang bị */
+#equipment-frame {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    z-index: 9999;
+    display: none; /* Mặc định ẩn */
+}
     </style>
 </head>
 <body>
 
-<div id="lvl-up-text">LEVEL UP!</div>
+<div id="hud"><div class="stat-card">VÀNG: <span id="gold-txt">0</span></div></div>
 
-<div id="ui-top">
-    <div class="top-row">
-        <div class="player-card">
-            <div class="level-badge">LV. <span id="lvl-val">1</span></div>
-            <div style="font-size: 11px;">HP</div>
-            <div class="bar-container"><div id="hp-fill-ui"></div></div>
-            <div style="font-size: 11px; margin-top: 4px;">EXP</div>
-            <div class="bar-container"><div id="exp-fill"></div></div>
-            <div class="stats-grid">
-                <span>⚔️ Công: <b id="dmg-val">20</b></span>
-                <span>💰 Vàng: <b id="gold-val">0</b></span>
-            </div>
-        </div>
-        <div style="background: var(--ui-bg); color: var(--accent); padding: 10px 20px; border-radius: 50px; font-weight: bold; height: fit-content;">
-            👾 DIỆT: <span id="kill-count">0</span>
-        </div>
-    </div>
-</div>
+<div id="btn-interact" onclick="openShop()">MUA ĐỒ</div>
 
 <div id="viewport">
     <div id="map">
-        <div id="grass"></div>
-        <div id="shopHouse" class="entity" data-collidable style="left: 950px; top: 500px; width: 220px; height: 220px; background: url('img/shop.png') center/contain no-repeat;"></div>
-        <div class="entity char" id="player" style="left:520px;top:500px;background-image:url('img/char1.png')">
-            <div id="weapon-hand"></div>
+        <div id="shop-bg" class="entity" style="left: 1000px; top: 1100px;"></div>
+        <div id="npc-merchant" class="entity" style="left: 1060px; top: 1150px;">
+            <div class="name-tag" style="color:#ff9f43">Thợ Rèn (Char3)</div>
         </div>
-        <div class="entity char" id="npcBlacksmith" style="left:920px;top:680px;background-image:url('img/char3.png')"></div>
+        
+        <div id="player" class="entity" style="left: 1200px; top: 1200px;"><div class="name-tag">Hỏa Long</div></div>
+        <div id="pet" class="entity" style="left: 1160px; top: 1200px;">
+            <div class="name-tag" style="color:#0f0">Tiểu Long</div>
+            <div id="pet-weapon"></div>
+        </div>
         <div id="mobs-layer"></div>
+        <div id="drops-layer"></div>
     </div>
 </div>
 
-<div id="shopUI">
-    <div class="shop-content">
-        <h3>⚒️ TIỆM RÈN</h3>
-        <p style="font-size: 14px; margin: 10px 0; color: #bdc3c7;">Nâng cấp kiếm để tăng mạnh sát thương cơ bản!</p>
-        <button onclick="buySword()" style="width:100%; padding:15px; background:#27ae60; border:none; color:white; border-radius:10px; font-weight:bold;">MUA KIẾM THẦN (200💰)</button>
-        <button onclick="shopUI.style.display='none'" style="background:none; border:none; color:#888; margin-top:10px;">Đóng</button>
+<div id="shop-ui">
+    <div class="shop-box">
+        <h3 style="color:var(--accent)">TIỆM RÈN KHÍ</h3>
+        <p style="margin: 10px 0; font-size: 14px;">Nâng cấp Kiếm Thần (200 Vàng)<br><small>Tăng mạnh lực đánh cho Pet</small></p>
+        <button class="buy-btn" id="buy-action" onclick="confirmPurchase()">XÁC NHẬN MUA</button>
+        <button class="buy-btn" style="background:#c0392b; margin-top:10px" onclick="document.getElementById('shop-ui').style.display='none'">ĐÓNG</button>
     </div>
 </div>
 
-<div id="mobileUI">
-    <div id="joy-container"><div id="joy"><div id="stick"></div></div></div>
-    <div id="action-container">
-        <div id="btnAttack" class="btn-mobile">⚔️</div>
-        <div id="btnAction" class="btn-mobile">💬</div>
-    </div>
-</div>
-
+<div id="joy"><div id="stick"></div></div>
+<iframe id="equipment-frame" src="more/trangbi.html"></iframe>
 <script>
-    const player = document.getElementById("player"), map = document.getElementById("map");
-    const mobLayer = document.getElementById("mobs-layer"), weaponHand = document.getElementById("weapon-hand");
-    
-    // Stats khởi đầu
-    let px = 520, py = 500, gold = 100, kills = 0;
-    let level = 1, exp = 0, expNext = 100;
-    let baseDmg = 20, weaponDmg = 0;
-    let maxHP = 100, currentHP = 100;
+    const state = { px: 1200, py: 1200, petX: 1160, petY: 1200, gold: 0, atk: 20, hasWeapon: false, keys: {} };
+    const map = document.getElementById("map"), pet = document.getElementById("pet"), player = document.getElementById("player");
+    let mobs = [], drops = [];
 
-    let keys = { up: false, down: false, left: false, right: false };
-    let mobs = [];
-
-    function updateUI() {
-        document.getElementById("lvl-val").textContent = level;
-        document.getElementById("dmg-val").textContent = baseDmg + weaponDmg;
-        document.getElementById("gold-val").textContent = gold;
-        document.getElementById("kill-count").textContent = kills;
-        document.getElementById("hp-fill-ui").style.width = (currentHP / maxHP * 100) + "%";
-        document.getElementById("exp-fill").style.width = (exp / expNext * 100) + "%";
-    }
-
-    function gainExp(amount) {
-        exp += amount;
-        if (exp >= expNext) {
-            levelUp();
-        }
-        updateUI();
-    }
-
-    function levelUp() {
-        level++;
-        exp = 0;
-        expNext = Math.floor(expNext * 1.5); // Yêu cầu EXP tăng dần
-        maxHP += 20;
-        currentHP = maxHP; // Hồi đầy máu khi lên cấp
-        baseDmg += 10;
-        
-        // Hiệu ứng chữ Level Up
-        const txt = document.getElementById("lvl-up-text");
-        txt.style.display = "block";
-        setTimeout(() => txt.style.display = "none", 1500);
-        updateUI();
-    }
-
-    function attackAction() {
-        if (weaponDmg > 0) {
-            weaponHand.classList.remove("swing-anim");
-            void weaponHand.offsetWidth;
-            weaponHand.classList.add("swing-anim");
-        }
-        
-        const totalDmg = baseDmg + weaponDmg;
-        mobs = mobs.filter(m => {
-            if (Math.hypot(px - m.x, py - m.y) < 140) {
-                m.hp -= totalDmg;
-                showDmg(m.x, m.y, totalDmg);
-                if (m.hp <= 0) {
-                    m.el.remove();
-                    gold += 30;
-                    kills++;
-                    gainExp(40); // Nhận 40 EXP mỗi quái
-                    setTimeout(spawnOneSlime, 3000);
-                    return false;
-                }
-            }
-            return true;
-        });
-    }
-
-    function spawnOneSlime() {
-        const m = { x: 600 + Math.random()*1200, y: 600 + Math.random()*1200, hp: 40 + (level*10) };
-        const el = document.createElement('div');
-        el.className = 'entity mob';
-        mobLayer.appendChild(el);
-        m.el = el;
+    function spawnMob() {
+        const m = { x: 800 + Math.random()*1000, y: 800 + Math.random()*1000, hp: 100, el: document.createElement('div') };
+        m.el.className = 'entity mob';
+m.el.innerHTML = `<div class="hp-bar"><div class="hp-fill"></div></div><div class="name-tag" style="color:red">Yêu Tinh</div>`;
+        m.el.style.left = m.x + "px"; m.el.style.top = m.y + "px";
+        document.getElementById("mobs-layer").appendChild(m.el);
         mobs.push(m);
     }
 
-    function showDmg(x, y, val) {
-        const d = document.createElement("div");
-        d.className = "dmg-popup";
-        d.textContent = "-" + val;
-        d.style.left = x + "px"; d.style.top = (y-20) + "px";
-        map.appendChild(d);
-        setTimeout(() => d.remove(), 600);
-    }
-
-    function buySword() {
-        if (gold >= 200) {
-            gold -= 200;
-            weaponDmg = 60;
-            weaponHand.style.display = "block";
-            document.getElementById("shopUI").style.display = "none";
-            updateUI();
-        } else { alert("Không đủ vàng!"); }
-    }
-
-    // Logic di chuyển & Camera (Giữ nguyên từ bản trước)
-    function update() {
-        let mx = 0, my = 0;
-        const speed = 7;
-        if(keys.up) my -= speed; if(keys.down) my += speed;
-        if(keys.left) { mx -= speed; player.style.transform = "scaleX(-1)"; }
-        if(keys.right) { mx += speed; player.style.transform = "scaleX(1)"; }
-
-        if(mx !== 0 || my !== 0) {
-            px += mx; py += my;
-            player.style.left = px + "px"; player.style.top = py + "px";
-            map.style.transform = `translate(${window.innerWidth/2 - px - 40}px, ${window.innerHeight/2 - py - 40}px)`;
+    // Logic Shop
+    function openShop() { document.getElementById("shop-ui").style.display = "flex"; }
+    
+    function confirmPurchase() {
+        if (state.gold >= 200 && !state.hasWeapon) {
+            state.gold -= 200; state.atk = 50; state.hasWeapon = true;
+            document.getElementById("gold-txt").innerText = state.gold;
+            document.getElementById("pet-weapon").style.display = "block";
+            document.getElementById("shop-ui").style.display = "none";
+            alert("Nâng cấp vũ khí thành công!");
+        } else if (state.hasWeapon) {
+            alert("Đã sở hữu rồi!");
+        } else {
+            alert("Thiếu vàng rồi đại hiệp!");
         }
-        mobs.forEach(m => {
-            m.el.style.left = m.x + "px"; m.el.style.top = m.y + "px";
-            if(Math.hypot(px - m.x, py - m.y) < 50 && Math.random() < 0.01) {
-                currentHP -= 2; updateUI();
-                if(currentHP <= 0) { alert("Game Over!"); location.reload(); }
+    }
+
+    function loop() {
+        // Di chuyển
+        let mx = 0, my = 0, s = 6;
+        if (state.keys['w']) my -= s; if (state.keys['s']) my += s;
+        if (state.keys['a']) { mx -= s; player.style.transform = "scaleX(-1)"; }
+        if (state.keys['d']) { mx += s; player.style.transform = "scaleX(1)"; }
+        state.px += mx; state.py += my;
+        player.style.left = state.px + "px"; player.style.top = state.py + "px";
+
+        // Hiện nút bấm khi gần NPC
+        const distToNPC = Math.hypot(state.px - 1060, state.py - 1150);
+        document.getElementById("btn-interact").style.display = (distToNPC < 60) ? "flex" : "none";
+
+        // Pet AI săn quái
+        let target = mobs.reduce((prev, curr) => {
+            let d = Math.hypot(state.px - curr.x, state.py - curr.y);
+            return (d < 250 && (!prev || d < prev.dist)) ? {dist: d, mob: curr} : prev;
+        }, null);
+
+        if (target && !state.isAttacking) {
+            state.petX += (target.mob.x - state.petX) * 0.15;
+            state.petY += (target.mob.y - state.petY) * 0.15;
+            if (Math.hypot(state.petX - target.mob.x, state.petY - target.mob.y) < 30) {
+                state.isAttacking = true;
+                target.mob.hp -= state.atk;
+                target.mob.el.querySelector('.hp-fill').style.width = target.mob.hp + "%";
+                if(target.mob.hp <= 0) {
+                    const g = { x: target.mob.x, y: target.mob.y, el: document.createElement('div') };
+                    g.el.className = 'entity gold-drop'; g.el.style.left = g.x+"px"; g.el.style.top = g.y+"px";
+                    document.getElementById("drops-layer").appendChild(g.el); drops.push(g);
+                    target.mob.el.remove(); mobs = mobs.filter(m => m !== target.mob); spawnMob();
+                }
+                setTimeout(() => state.isAttacking = false, 500);
+            }
+        } else {
+            state.petX += (state.px - 40 - state.petX) * 0.1;
+state.petY += (state.py + 10 - state.petY) * 0.1;
+        }
+        pet.style.left = state.petX + "px"; pet.style.top = state.petY + "px";
+
+        // Nhặt vàng
+        drops.forEach((d, i) => {
+            if (Math.hypot(state.px - d.x, state.py - d.y) < 40) {
+                d.el.remove(); drops.splice(i, 1);
+                state.gold += 50; document.getElementById("gold-txt").innerText = state.gold;
             }
         });
-        document.querySelectorAll('.entity').forEach(el => el.style.zIndex = Math.floor(el.offsetTop));
-        requestAnimationFrame(update);
+
+        map.style.transform = `translate(${window.innerWidth/2 - state.px}px, ${window.innerHeight/2 - state.py}px)`;
+        requestAnimationFrame(loop);
     }
 
-    // Controls PC & Mobile
-    window.addEventListener("keydown", e => {
-        const k = e.key.toLowerCase();
-        if(k === "w" || e.key === "ArrowUp") keys.up = true;
-        if(k === "s" || e.key === "ArrowDown") keys.down = true;
-        if(k === "a" || e.key === "ArrowLeft") keys.left = true;
-        if(k === "d" || e.key === "ArrowRight") keys.right = true;
-        if(e.code === "Space") attackAction();
-    });
-    window.addEventListener("keyup", e => {
-        const k = e.key.toLowerCase();
-        if(k === "w" || e.key === "ArrowUp") keys.up = false;
-        if(k === "s" || e.key === "ArrowDown") keys.down = false;
-        if(k === "a" || e.key === "ArrowLeft") keys.left = false;
-        if(k === "d" || e.key === "ArrowRight") keys.right = false;
-    });
+    // Controls
+    window.onkeydown = e => state.keys[e.key.toLowerCase()] = true;
+    window.onkeyup = e => state.keys[e.key.toLowerCase()] = false;
+    document.getElementById("joy").ontouchmove = e => {
+        let t = e.touches[0], r = document.getElementById("joy").getBoundingClientRect();
+        let dx = t.clientX - (r.left + 50), dy = t.clientY - (r.top + 50);
+        let d = Math.min(Math.hypot(dx, dy), 40), ang = Math.atan2(dy, dx);
+        document.getElementById("stick").style.transform = `translate(${Math.cos(ang)*d}px, ${Math.sin(ang)*d}px)`;
+        state.keys['w'] = dy < -15; state.keys['s'] = dy > 15; state.keys['a'] = dx < -15; state.keys['d'] = dx > 15;
+    };
+    document.getElementById("joy").ontouchend = () => { state.keys = {}; document.getElementById("stick").style.transform = "translate(0,0)"; };
 
-    // Joypad Mobile
-    const joy = document.getElementById("joy"), stick = document.getElementById("stick");
-    joy.addEventListener("touchstart", (e) => {
-        const handleMove = (ev) => {
-            const t = ev.touches[0];
-            const r = joy.getBoundingClientRect();
-            const dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2);
-            const dist = Math.min(Math.hypot(dx, dy), 50), ang = Math.atan2(dy, dx);
-            stick.style.transform = `translate(calc(-50% + ${Math.cos(ang)*dist}px), calc(-50% + ${Math.sin(ang)*dist}px))`;
-            keys.up = dy < -15; keys.down = dy > 15; keys.left = dx < -15; keys.right = dx > 15;
-        };
-        document.addEventListener("touchmove", handleMove);
-        document.addEventListener("touchend", () => {
-            keys = { up: false, down: false, left: false, right: false };
-            stick.style.transform = "translate(-50%, -50%)";
-            document.removeEventListener("touchmove", handleMove);
-        }, {once: true});
-    });
+    for(let i=0; i<5; i++) spawnMob();
+    loop();
+    // 1. Hàm mở trang bị
+function openEquipment() {
+    const frame = document.getElementById('equipment-frame');
+    frame.style.display = 'block';
+    // Load lại iframe để cập nhật dữ liệu mới nhất
+    frame.contentWindow.location.reload();
+}
 
-    document.getElementById("btnAttack").onclick = attackAction;
-    document.getElementById("btnAction").onclick = () => { if(Math.hypot(px-920, py-680) < 150) document.getElementById("shopUI").style.display="flex"; };
+// 2. Hàm đóng trang bị (gọi từ file trangbi.html)
+function closeEquipment() {
+    document.getElementById('equipment-frame').style.display = 'none';
+}
 
-    for(let i=0; i<8; i++) spawnOneSlime();
-    updateUI(); update();
+// 3. Gán sự kiện click vào giữa nhân vật
+player.onclick = function(e) {
+    e.stopPropagation(); // Ngăn sự kiện click xuyên xuống map
+    openEquipment();
+};
+
+// Đảm bảo nhân vật có thể nhận sự kiện click
+player.style.pointerEvents = 'auto';
+player.style.cursor = 'pointer';
 </script>
 </body>
 </html>
