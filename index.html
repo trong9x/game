@@ -1,471 +1,276 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>2D RPG Map</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>RPG: Level Up System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <style>
+        :root { --accent: #ffd700; --hp-red: #ff4757; --exp-blue: #2980b9; --ui-bg: rgba(0, 0, 0, 0.7); }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { width: 100%; height: 100%; overflow: hidden; touch-action: none; background: #1a1a1a; font-family: 'Segoe UI', sans-serif; }
+        
+        #viewport { position: fixed; inset: 0; overflow: hidden; }
+        #map { position: absolute; width: 2400px; height: 2400px; will-change: transform; }
+        #grass { position: absolute; inset: 0; background: url('img/co.png') repeat; background-size: 120px 120px; image-rendering: pixelated; }
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{overflow:hidden;background:#111;font-family:system-ui;}
+        .entity { position: absolute; transform-origin: bottom center; z-index: 10; }
+        .char { width: 80px; height: 80px; background: center/contain no-repeat; transition: transform 0.1s; }
+        .mob { width: 60px; height: 60px; background: url('img/smile.png') center/contain no-repeat; image-rendering: pixelated; }
+        
+        /* UI Top - Đã thêm thanh EXP */
+        #ui-top { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; pointer-events: none; display: flex; flex-direction: column; gap: 8px; }
+        .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        
+        .player-card { background: var(--ui-bg); padding: 10px 20px; border-radius: 15px; border-left: 5px solid var(--accent); pointer-events: auto; color: white; min-width: 180px; }
+        .level-badge { color: var(--accent); font-weight: 900; font-size: 20px; margin-bottom: 2px; }
+        
+        .bar-container { width: 200px; height: 10px; background: #333; border-radius: 5px; margin-top: 5px; overflow: hidden; border: 1px solid #000; }
+        #exp-fill { height: 100%; width: 0%; background: var(--exp-blue); transition: width 0.3s; }
+        #hp-fill-ui { height: 100%; width: 100%; background: var(--hp-red); transition: width 0.3s; }
 
-#viewport{
-  width:100vw;
-  height:100vh;
-  overflow:hidden;
-  position:fixed;   /* ⭐ quan trọng */
-  left:0;
-  top:0;
-}
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; margin-top: 5px; color: #ddd; }
 
-#map{
-  position:absolute;
-  width:2400px;
-  height:2400px;
-  will-change: transform; /* ⭐ mượt mobile */
-}
+        /* Level Up Effect */
+        #lvl-up-text { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); color: var(--accent); font-size: 50px; font-weight: 900; text-shadow: 0 0 20px #000; display: none; z-index: 3000; animation: lvlUpAnim 1.5s forwards; }
+        @keyframes lvlUpAnim { 0% { opacity:0; transform: translate(-50%, 0); } 20% { opacity:1; } 80% { opacity:1; } 100% { opacity:0; transform: translate(-50%, -100px); } }
 
+        /* Giữ nguyên các style cũ của bạn */
+        #weapon-hand { position: absolute; width: 50px; height: 50px; background: url('img/vukhi.png') center/contain no-repeat; top: 10px; right: -15px; display: none; }
+        .dmg-popup { position: absolute; color: #fff; font-weight: 900; font-size: 22px; text-shadow: 2px 2px #000; pointer-events: none; z-index: 9999; animation: floatUp 0.6s ease-out forwards; }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+        .swing-anim { animation: swing 0.15s ease-in-out; }
+        @keyframes swing { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-95deg); } }
+        
+        #mobileUI { position: fixed; inset: 0; pointer-events: none; z-index: 1500; }
+        #joy-container { position: absolute; left: 40px; bottom: 40px; width: 130px; height: 130px; pointer-events: auto; }
+        #joy { width: 100%; height: 100%; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); position: relative; }
+        #stick { position: absolute; width: 50px; height: 50px; background: #fff; border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        #action-container { position: absolute; right: 30px; bottom: 30px; display: flex; flex-direction: column; gap: 15px; pointer-events: auto; }
+        .btn-mobile { width: 85px; height: 85px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; background: var(--ui-bg); color: white; border: 3px solid rgba(255,255,255,0.2); }
+        #btnAttack { width: 105px; height: 105px; background: rgba(231, 76, 60, 0.6); }
 
-
-#grass{
-  position:absolute;inset:0;
-  background:url("img/co.png") repeat;
-  filter:saturate(.9) brightness(.95);
-}
-
-.tree{
-  position:absolute;width:160px;height:200px;
-  background:url("img/cay.png") center/contain no-repeat;
-}
-.fence{
-  position:absolute;width:64px;height:64px;
-  background:url("img/rao.png") center/contain no-repeat;
-}
-
-.char{
-  position:absolute;width:96px;height:96px;
-  background:center/contain no-repeat;
-}
-
-.name{
-  position:absolute;top:-18px;width:100%;
-  text-align:center;font-size:12px;font-weight:bold;
-  color:#000;text-shadow:0 1px 2px #fff;
-}
-
-.tree::after,.char::after{
-  content:"";position:absolute;bottom:10px;left:50%;
-  width:50%;height:12px;background:rgba(0,0,0,.3);
-  filter:blur(6px);transform:translateX(-50%);
-  z-index:-1;
-}
-
-/* DIALOG */
-#dialog{
-  position:fixed;bottom:30px;left:50%;
-  transform:translateX(-50%);
-  width:360px;background:#fff;border-radius:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,.3);
-  padding:14px;display:none;z-index:999;
-}
-#dialog .name{font-weight:bold;margin-bottom:6px;}
-#dialog .text{font-size:14px;line-height:1.4;}
-#dialog .actions{text-align:right;margin-top:10px;}
-#dialog button{
-  padding:4px 10px;border:none;border-radius:6px;
-  background:#4caf50;color:#fff;cursor:pointer;margin-left:6px;
-}
-/* ===== MOBILE UI ===== */
-#mobileUI{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-}
-
-/* joystick */
-#joy{
-  position:absolute;
-  left:25px;
-  bottom:25px;
-  width:110px;
-  height:110px;
-  background:rgba(255,255,255,.15);
-  border-radius:50%;
-  pointer-events:auto;
-  touch-action:none;
-}
-
-#stick{
-  position:absolute;
-  width:55px;
-  height:55px;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  background:rgba(255,255,255,.5);
-  border-radius:50%;
-}
-
-/* buttons */
-#btnTalk,#btnQuest{
-  position:absolute;
-  width:60px;
-  height:60px;
-  border-radius:50%;
-  border:none;
-  font-size:20px;
-  background:#4caf50;
-  color:#fff;
-  pointer-events:auto;
-}
-
-#btnTalk{ right:25px; bottom:100px; }
-#btnQuest{ right:25px; bottom:25px; }
-#bag{
-  position:fixed;
-  top:20px;
-  right:20px;
-  background:#000c;
-  color:#fff;
-  padding:8px 14px;
-  border-radius:10px;
-  font-size:14px;
-}
-
-</style>
+        #shopUI { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; z-index: 2000; align-items: center; justify-content: center; }
+        .shop-content { width: 320px; background: #2c3e50; border-radius: 20px; padding: 25px; color: white; text-align: center; border: 2px solid var(--accent); }
+    </style>
 </head>
-
 <body>
 
+<div id="lvl-up-text">LEVEL UP!</div>
+
+<div id="ui-top">
+    <div class="top-row">
+        <div class="player-card">
+            <div class="level-badge">LV. <span id="lvl-val">1</span></div>
+            <div style="font-size: 11px;">HP</div>
+            <div class="bar-container"><div id="hp-fill-ui"></div></div>
+            <div style="font-size: 11px; margin-top: 4px;">EXP</div>
+            <div class="bar-container"><div id="exp-fill"></div></div>
+            <div class="stats-grid">
+                <span>⚔️ Công: <b id="dmg-val">20</b></span>
+                <span>💰 Vàng: <b id="gold-val">0</b></span>
+            </div>
+        </div>
+        <div style="background: var(--ui-bg); color: var(--accent); padding: 10px 20px; border-radius: 50px; font-weight: bold; height: fit-content;">
+            👾 DIỆT: <span id="kill-count">0</span>
+        </div>
+    </div>
+</div>
+
 <div id="viewport">
-<div id="map">
-  <div id="grass"></div>
-
-  <!-- MAP -->
-  <div class="tree block" style="left:300px;top:260px"></div>
-  <div class="tree block" style="left:360px;top:300px"></div>
-  <div class="tree block" style="left:420px;top:260px"></div>
-  <div class="tree block" style="left:700px;top:420px"></div>
-  <div class="tree block" style="left:760px;top:460px"></div>
-  <div class="tree orange" style="left:650px;top:360px"></div>
-
-  <div class="fence block" style="left:1000px;top:300px"></div>
-  <div class="fence block" style="left:1064px;top:300px"></div>
-  <div class="fence block" style="left:1128px;top:300px"></div>
-
-  <!-- PLAYER -->
-  <div class="char" id="player"
-    style="left:520px;top:420px;background-image:url('img/char1.png')">
-    <div class="name">明重</div>
-  </div>
-
-  <!-- NPC -->
-  <div class="char npc"
-    data-name="NPC 1"
-    data-vi="Bạn giúp tôi hái 1 quả quýt nhé?"
-    data-zh="可以帮我摘一个橘子吗？"
-    data-quest="pick_orange"
-    style="left:440px;top:420px;background-image:url('img/char2.png')">
-    <div class="name">NPC 1</div>
-  </div>
-
-  <div class="char npc"
-    data-name="NPC 2"
-    data-vi="Hôm nay thời tiết đẹp thật."
-    data-zh="今天天气真不错。"
-    style="left:600px;top:420px;background-image:url('img/char3.png')">
-    <div class="name">NPC 2</div>
-  </div>
-</div>
+    <div id="map">
+        <div id="grass"></div>
+        <div id="shopHouse" class="entity" data-collidable style="left: 950px; top: 500px; width: 220px; height: 220px; background: url('img/shop.png') center/contain no-repeat;"></div>
+        <div class="entity char" id="player" style="left:520px;top:500px;background-image:url('img/char1.png')">
+            <div id="weapon-hand"></div>
+        </div>
+        <div class="entity char" id="npcBlacksmith" style="left:920px;top:680px;background-image:url('img/char3.png')"></div>
+        <div id="mobs-layer"></div>
+    </div>
 </div>
 
-<!-- DIALOG -->
-<div id="dialog">
-  <div class="name" id="dName"></div>
-  <div class="text" id="dText"></div>
-   <div class="actions" id="dialogActions">
-    <button onclick="toggleLang()">VI / 中</button>
-    <button onclick="closeDialog()">Đóng</button>
-  </div>
- 
-
+<div id="shopUI">
+    <div class="shop-content">
+        <h3>⚒️ TIỆM RÈN</h3>
+        <p style="font-size: 14px; margin: 10px 0; color: #bdc3c7;">Nâng cấp kiếm để tăng mạnh sát thương cơ bản!</p>
+        <button onclick="buySword()" style="width:100%; padding:15px; background:#27ae60; border:none; color:white; border-radius:10px; font-weight:bold;">MUA KIẾM THẦN (200💰)</button>
+        <button onclick="shopUI.style.display='none'" style="background:none; border:none; color:#888; margin-top:10px;">Đóng</button>
+    </div>
 </div>
-<!-- MOBILE CONTROLS -->
+
 <div id="mobileUI">
-
-  <!-- JOYSTICK -->
-  <div id="joy">
-    <div id="stick"></div>
-  </div>
-
-  <!-- BUTTONS -->
-  <button id="btnTalk">💬</button>
-  <button id="btnQuest">Q</button>
-
+    <div id="joy-container"><div id="joy"><div id="stick"></div></div></div>
+    <div id="action-container">
+        <div id="btnAttack" class="btn-mobile">⚔️</div>
+        <div id="btnAction" class="btn-mobile">💬</div>
+    </div>
 </div>
-
-<!-- BAG (ngoài mobileUI) -->
-<div id="bag">
-  🎒 Cam: <span id="orangeCount">0</span>
-</div>
-
 
 <script>
-/* ===== INIT ===== */
-const player = document.getElementById("player");
-const npcs = document.querySelectorAll(".npc");
-const blocks = document.querySelectorAll(".block");
-const npcTriggered = new Set();
+    const player = document.getElementById("player"), map = document.getElementById("map");
+    const mobLayer = document.getElementById("mobs-layer"), weaponHand = document.getElementById("weapon-hand");
+    
+    // Stats khởi đầu
+    let px = 520, py = 500, gold = 100, kills = 0;
+    let level = 1, exp = 0, expNext = 100;
+    let baseDmg = 20, weaponDmg = 0;
+    let maxHP = 100, currentHP = 100;
 
-const dialog = document.getElementById("dialog");
-const dName = document.getElementById("dName");
-const dText = document.getElementById("dText");
-const dialogActions = document.getElementById("dialogActions");
+    let keys = { up: false, down: false, left: false, right: false };
+    let mobs = [];
 
-let px = player.offsetLeft;
-let py = player.offsetTop;
-const speed = 4;
-const key = {};
-
-let currentNPC = null;
-let lang = "vi";
-
-/* ===== QUEST ===== */
-let quest = { active:false, done:false, id:null };
-
-/* ===== INPUT ===== */
-document.addEventListener("keydown",e=>key[e.key.toLowerCase()]=true);
-document.addEventListener("keyup",e=>key[e.key.toLowerCase()]=false);
-
-/* ===== COLLISION ===== */
-function hitTest(nx,ny){
-  const pw=30, ph=20;
-  const fx=nx+33, fy=ny+76;
-  for(const b of blocks){
-    const bx=b.offsetLeft, bw=b.offsetWidth;
-    const by=b.offsetTop+b.offsetHeight-40;
-    if(fx<bw+bx && fx+pw>bx && fy<by+40 && fy+ph>by) return true;
-  }
-  return false;
-}
-
-/* ===== DISTANCE ===== */
-function distance(a,b){
-  return Math.hypot(
-    a.offsetLeft-b.offsetLeft,
-    a.offsetTop-b.offsetTop
-  );
-}
-
-/* ===== AUTO NPC ===== */
-function checkAutoDialog(){
-  if(currentNPC) return;
-  npcs.forEach(npc=>{
-    if(distance(player,npc)<70 && !npcTriggered.has(npc)){
-      npcTriggered.add(npc);
-      openDialog(npc);
-    }
-  });
-}
-
-/* ===== MOVE LOOP ===== */
-function loop(){
-  let nx=px, ny=py;
-
-  if(key.w||key.arrowup) ny-=speed;
-  if(key.s||key.arrowdown) ny+=speed;
-  if(key.a||key.arrowleft) nx-=speed;
-  if(key.d||key.arrowright) nx+=speed;
-
-  if(!hitTest(nx,ny)){
-    px=nx; 
-    py=ny;
-  }
-
-  player.style.left=px+"px";
-  player.style.top=py+"px";
-
-  // ⭐ CAMERA FOLLOW PLAYER
-  centerCamera();
-
-  checkAutoDialog();
-  requestAnimationFrame(loop);
-}
-const map = document.getElementById("map");
-
-function centerCamera(){
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  let camX = vw/2 - px - 48;
-  let camY = vh/2 - py - 48;
-
-  const maxX = 0;
-  const maxY = 0;
-  const minX = vw - map.offsetWidth;
-  const minY = vh - map.offsetHeight;
-
-  camX = Math.min(maxX, Math.max(minX, camX));
-  camY = Math.min(maxY, Math.max(minY, camY));
-
-  map.style.transform = `translate(${camX}px, ${camY}px)`;
-}
-
-loop();
-
-/* ===== DIALOG ===== */
-function openDialog(npc){
-  if(currentNPC===npc) return;
-  currentNPC=npc; lang="vi";
-  dName.textContent=npc.dataset.name;
-
-  if(npc.dataset.quest && !quest.done && !quest.active){
-    dText.textContent=npc.dataset.vi;
-    dialogActions.innerHTML=`
-      <button onclick="acceptQuest('${npc.dataset.quest}')">Nhận nhiệm vụ</button>
-      <button onclick="toggleLang()">VI / 中</button>
-      <button onclick="closeDialog()">Đóng</button>`;
-  }else{
-    dText.textContent=npc.dataset.vi;
-    dialogActions.innerHTML=`
-      <button onclick="toggleLang()">VI / 中</button>
-      <button onclick="closeDialog()">Đóng</button>`;
-  }
-  dialog.style.display="block";
-}
-
-function toggleLang(){
-  if(!currentNPC) return;
-  lang=lang==="vi"?"zh":"vi";
-  dText.textContent=currentNPC.dataset[lang];
-}
-
-function closeDialog(){
-  dialog.style.display="none";
-  currentNPC=null;
-}
-
-/* ===== QUEST ACTION ===== */
-function acceptQuest(id){
-  quest.active=true; quest.id=id;
-  alert("🎯 Nhận nhiệm vụ: Hái 1 quả quýt!");
-  closeDialog();
-}
-
-document.addEventListener("keydown",e=>{
-  if(e.key==="q" && quest.active){
-    quest.active=false; quest.done=true;
-    alert("✅ Hoàn thành nhiệm vụ! +100 vàng 🪙");
-  }
-});
-/* =======================
-   MOBILE CONTROLS
-======================= */
-
-const joy = document.getElementById("joy");
-const stick = document.getElementById("stick");
-const btnTalk = document.getElementById("btnTalk");
-const btnQuest = document.getElementById("btnQuest");
-
-let joyActive = false;
-
-function resetStick(){
-  stick.style.left="50%";
-  stick.style.top="50%";
-}
-
-/* joystick move */
-joy.addEventListener("touchstart",()=> joyActive=true);
-
-joy.addEventListener("touchend",()=>{
-  joyActive=false;
-  resetStick();
-});
-
-joy.addEventListener("touchmove",e=>{
-  if(!joyActive) return;
-
-  const rect = joy.getBoundingClientRect();
-  const t = e.touches[0];
-
-  const dx = t.clientX - rect.left - rect.width/2;
-  const dy = t.clientY - rect.top - rect.height/2;
-
-  const max = 35;
-  const dist = Math.hypot(dx,dy);
-  const angle = Math.atan2(dy,dx);
-
-  const mx = Math.cos(angle) * Math.min(dist,max);
-  const my = Math.sin(angle) * Math.min(dist,max);
-
-  stick.style.left = 50 + mx/rect.width*100 + "%";
-  stick.style.top  = 50 + my/rect.height*100 + "%";
-
-  /* fake keyboard */
-  key.w = my < -10;
-  key.s = my > 10;
-  key.a = mx < -10;
-  key.d = mx > 10;
-});
-
-/* talk button */
-btnTalk.onclick = ()=>{
-  if(currentNPC) return;
-
-  npcs.forEach(npc=>{
-    if(distance(player,npc)<80){
-      openDialog(npc);
-    }
-  });
-};
-
-/* quest button */
-btnQuest.onclick = ()=>{
-  if(quest.active){
-    quest.active=false;
-    quest.done=true;
-    alert("✅ Hoàn thành nhiệm vụ!");
-  }
-};
-function updateInventory(){
-  document.getElementById("orangeCount").textContent = inventory.orange;
-}
-
-/* ======================
-   INVENTORY
-====================== */
-
-let inventory = {
-  orange: 0
-};
-
-function updateInventory(){
-  document.getElementById("orangeCount").textContent = inventory.orange;
-}
-
-updateInventory();
-/* ======================
-   ORANGE TREE CLICK
-====================== */
-
-document.querySelectorAll(".orange").forEach(tree=>{
-  tree.onclick = ()=>{
-
-    if(distance(player, tree) > 80){
-      alert("Lại gần cây hơn 🌳");
-      return;
+    function updateUI() {
+        document.getElementById("lvl-val").textContent = level;
+        document.getElementById("dmg-val").textContent = baseDmg + weaponDmg;
+        document.getElementById("gold-val").textContent = gold;
+        document.getElementById("kill-count").textContent = kills;
+        document.getElementById("hp-fill-ui").style.width = (currentHP / maxHP * 100) + "%";
+        document.getElementById("exp-fill").style.width = (exp / expNext * 100) + "%";
     }
 
-    inventory.orange++;
-    updateInventory();
+    function gainExp(amount) {
+        exp += amount;
+        if (exp >= expNext) {
+            levelUp();
+        }
+        updateUI();
+    }
 
-    alert("🍊 +1 cam");
-  };
-});
+    function levelUp() {
+        level++;
+        exp = 0;
+        expNext = Math.floor(expNext * 1.5); // Yêu cầu EXP tăng dần
+        maxHP += 20;
+        currentHP = maxHP; // Hồi đầy máu khi lên cấp
+        baseDmg += 10;
+        
+        // Hiệu ứng chữ Level Up
+        const txt = document.getElementById("lvl-up-text");
+        txt.style.display = "block";
+        setTimeout(() => txt.style.display = "none", 1500);
+        updateUI();
+    }
 
+    function attackAction() {
+        if (weaponDmg > 0) {
+            weaponHand.classList.remove("swing-anim");
+            void weaponHand.offsetWidth;
+            weaponHand.classList.add("swing-anim");
+        }
+        
+        const totalDmg = baseDmg + weaponDmg;
+        mobs = mobs.filter(m => {
+            if (Math.hypot(px - m.x, py - m.y) < 140) {
+                m.hp -= totalDmg;
+                showDmg(m.x, m.y, totalDmg);
+                if (m.hp <= 0) {
+                    m.el.remove();
+                    gold += 30;
+                    kills++;
+                    gainExp(40); // Nhận 40 EXP mỗi quái
+                    setTimeout(spawnOneSlime, 3000);
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    function spawnOneSlime() {
+        const m = { x: 600 + Math.random()*1200, y: 600 + Math.random()*1200, hp: 40 + (level*10) };
+        const el = document.createElement('div');
+        el.className = 'entity mob';
+        mobLayer.appendChild(el);
+        m.el = el;
+        mobs.push(m);
+    }
+
+    function showDmg(x, y, val) {
+        const d = document.createElement("div");
+        d.className = "dmg-popup";
+        d.textContent = "-" + val;
+        d.style.left = x + "px"; d.style.top = (y-20) + "px";
+        map.appendChild(d);
+        setTimeout(() => d.remove(), 600);
+    }
+
+    function buySword() {
+        if (gold >= 200) {
+            gold -= 200;
+            weaponDmg = 60;
+            weaponHand.style.display = "block";
+            document.getElementById("shopUI").style.display = "none";
+            updateUI();
+        } else { alert("Không đủ vàng!"); }
+    }
+
+    // Logic di chuyển & Camera (Giữ nguyên từ bản trước)
+    function update() {
+        let mx = 0, my = 0;
+        const speed = 7;
+        if(keys.up) my -= speed; if(keys.down) my += speed;
+        if(keys.left) { mx -= speed; player.style.transform = "scaleX(-1)"; }
+        if(keys.right) { mx += speed; player.style.transform = "scaleX(1)"; }
+
+        if(mx !== 0 || my !== 0) {
+            px += mx; py += my;
+            player.style.left = px + "px"; player.style.top = py + "px";
+            map.style.transform = `translate(${window.innerWidth/2 - px - 40}px, ${window.innerHeight/2 - py - 40}px)`;
+        }
+        mobs.forEach(m => {
+            m.el.style.left = m.x + "px"; m.el.style.top = m.y + "px";
+            if(Math.hypot(px - m.x, py - m.y) < 50 && Math.random() < 0.01) {
+                currentHP -= 2; updateUI();
+                if(currentHP <= 0) { alert("Game Over!"); location.reload(); }
+            }
+        });
+        document.querySelectorAll('.entity').forEach(el => el.style.zIndex = Math.floor(el.offsetTop));
+        requestAnimationFrame(update);
+    }
+
+    // Controls PC & Mobile
+    window.addEventListener("keydown", e => {
+        const k = e.key.toLowerCase();
+        if(k === "w" || e.key === "ArrowUp") keys.up = true;
+        if(k === "s" || e.key === "ArrowDown") keys.down = true;
+        if(k === "a" || e.key === "ArrowLeft") keys.left = true;
+        if(k === "d" || e.key === "ArrowRight") keys.right = true;
+        if(e.code === "Space") attackAction();
+    });
+    window.addEventListener("keyup", e => {
+        const k = e.key.toLowerCase();
+        if(k === "w" || e.key === "ArrowUp") keys.up = false;
+        if(k === "s" || e.key === "ArrowDown") keys.down = false;
+        if(k === "a" || e.key === "ArrowLeft") keys.left = false;
+        if(k === "d" || e.key === "ArrowRight") keys.right = false;
+    });
+
+    // Joypad Mobile
+    const joy = document.getElementById("joy"), stick = document.getElementById("stick");
+    joy.addEventListener("touchstart", (e) => {
+        const handleMove = (ev) => {
+            const t = ev.touches[0];
+            const r = joy.getBoundingClientRect();
+            const dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2);
+            const dist = Math.min(Math.hypot(dx, dy), 50), ang = Math.atan2(dy, dx);
+            stick.style.transform = `translate(calc(-50% + ${Math.cos(ang)*dist}px), calc(-50% + ${Math.sin(ang)*dist}px))`;
+            keys.up = dy < -15; keys.down = dy > 15; keys.left = dx < -15; keys.right = dx > 15;
+        };
+        document.addEventListener("touchmove", handleMove);
+        document.addEventListener("touchend", () => {
+            keys = { up: false, down: false, left: false, right: false };
+            stick.style.transform = "translate(-50%, -50%)";
+            document.removeEventListener("touchmove", handleMove);
+        }, {once: true});
+    });
+
+    document.getElementById("btnAttack").onclick = attackAction;
+    document.getElementById("btnAction").onclick = () => { if(Math.hypot(px-920, py-680) < 150) document.getElementById("shopUI").style.display="flex"; };
+
+    for(let i=0; i<8; i++) spawnOneSlime();
+    updateUI(); update();
 </script>
-
 </body>
 </html>
+
 
 
