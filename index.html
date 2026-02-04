@@ -1,448 +1,347 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>🔥 Hỏa Long Mobile - PC Edition</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-    :root { --gold: #ffd700; }
-    * { margin:0; padding:0; box-sizing:border-box; user-select: none; }
-    body { overflow:hidden; background:#111; font-family: 'Segoe UI', Arial; color: white; }
+    <meta charset="UTF-8">
+    <title>🔥 Hỏa Long Mobile - Official Version</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        :root { --gold: #ffd700; --red: #ff4444; --blue: #3498db; }
+        * { margin:0; padding:0; box-sizing:border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { overflow:hidden; background:#111; font-family: 'Segoe UI', Arial; color: white; touch-action: none; }
 
-    /* MAP */
-    #map {
-        position:absolute; width:3000px; height:3000px;
-        background: url('img/co.png'); /* Ảnh cỏ của bạn */
-        background-size: 100px 100px;
-    }
+        /* MAP */
+        #map {
+            position:absolute; width:3000px; height:3000px;
+            background: url('img/co.png') repeat;
+            background-size: 100px 100px;
+            will-change: transform;
+        }
 
-    /* ENTITY */
-    .entity {
-        position:absolute; background-repeat:no-repeat; background-size:contain;
-        background-position:bottom center; image-rendering:pixelated;
-    }
+        /* ENTITY BASE */
+        .entity {
+            position:absolute; background-repeat:no-repeat; background-size:contain;
+            background-position:bottom center; image-rendering:pixelated;
+            transition: filter 0.2s;
+        }
 
-    #player { width:70px; height:80px; background-image:url('img/char1.png'); transition: filter 0.1s; }
-    #pet { width:60px; height:60px; background-image:url('img/smile.png'); }
-    .mob { width:80px; height:90px; background-image:url('img/boss.png'); transition: all 0.2s; }
-    .npc-char { width:70px; height:80px; }
-    
-    /* HIỆU ỨNG KILL */
-    #skill-effect {
-        position: absolute; width: 50px; height: 50px;
-        background: url('img/kill.png') no-repeat center;
-        background-size: contain; display: none; pointer-events: none; z-index: 9999;
-    }
+        #player { width:70px; height:80px; background-image:url('img/char1.png'); z-index: 100; }
+        #pet { width:60px; height:60px; background-image:url('img/smile.png'); }
+        .mob { width:80px; height:90px; background-image:url('img/boss.png'); }
+        .npc-char { width:70px; height:80px; }
+        
+        /* HIỆU ỨNG SKILL */
+        #skill-effect {
+            position: absolute; width: 120px; height: 120px;
+            background: url('img/kill.png') no-repeat center;
+            background-size: contain; display: none; pointer-events: none; z-index: 9999;
+            transform: translate(-50%, -50%);
+        }
 
-    /* GIAO DIỆN HUD */
-    #hud {
-        position:fixed; top:20px; left:20px; background:rgba(0,0,0,0.8);
-        border:2px solid var(--gold); padding:15px; border-radius:10px; color:gold; z-index:1000;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-    .controls-hint { font-size: 12px; color: #ccc; margin-top: 5px; }
+        /* JOYSTICK VIRTUAL */
+        #joystick-zone {
+            position: fixed; bottom: 50px; left: 50px; width: 120px; height: 120px;
+            background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 2000;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        #joystick-stick {
+            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+            background: rgba(255,255,255,0.4); border-radius: 50%;
+            transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
 
-    /* SCREEN SHAKE */
-    .shake { animation: shake 0.2s; }
-    @keyframes shake {
-        0% { transform: translate(1px, 1px) rotate(0deg); }
-        20% { transform: translate(-3px, 0px) rotate(-1deg); }
-        40% { transform: translate(3px, 2px) rotate(1deg); }
-        60% { transform: translate(-1px, -1px) rotate(0deg); }
-        80% { transform: translate(-3px, 1px) rotate(-1deg); }
-        100% { transform: translate(1px, -2px) rotate(1deg); }
-    }
-    /* Vòng hồi Mana dưới chân */
-#mana-circle {
-    position: absolute;
-    width: 80px;
-    height: 30px;
-    background: radial-gradient(ellipse at center, rgba(146, 29, 197, 0.4) 0%, transparent 70%);
-    border: 1.5px solid rgba(124, 22, 193, 0.5);
-    border-radius: 50%;
-    pointer-events: none;
-    transform: translateX(-5px);
-    display: none; /* Chỉ hiện khi hồi mana */
-    filter: blur(2px);
-    animation: pulse-mana 1.5s infinite;
-}
+        /* MOBILE BUTTONS */
+        #mobile-btns {
+            position:fixed; bottom:30px; right:30px; z-index:2000; 
+            display:grid; grid-template-columns: repeat(2, 80px); gap:15px;
+        }
+        .btn-action {
+            width:80px; height:80px; border-radius:50%; color:white; 
+            font-weight:bold; border:3px solid rgba(255,255,255,0.6); cursor:pointer;
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            font-size: 12px; text-shadow: 1px 1px 2px black;
+        }
+        .btn-big { grid-column: span 2; width: 100%; height: 60px; border-radius: 30px; }
 
-@keyframes pulse-mana {
-    0% { transform: translateX(-5px) scale(0.8); opacity: 0.3; }
-    50% { transform: translateX(-5px) scale(1.1); opacity: 0.7; }
-    100% { transform: translateX(-5px) scale(0.8); opacity: 0.3; }
-}
-#respawn-screen {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: none; /* Mặc định ẩn */
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    color: white;
-}
-#respawn-timer {
-    font-size: 48px;
-    color: #ff4444;
-    font-weight: bold;
-    margin-top: 20px;
-}
-.heal-text {
-    position: absolute;
-    color: #2ecc71;
-    font-weight: bold;
-    font-size: 20px;
-    animation: floatUp 1s ease-out forwards;
-    pointer-events: none;
-    z-index: 10000;
-}
-@keyframes floatUp {
-    0% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-50px); opacity: 0; }
-}
-/* Thanh máu quái */
-.mob-hp-bar {
-    position: absolute; top: -15px; left: 50%;
-    transform: translateX(-50%); width: 50px; height: 6px;
-    background: #333; border: 1px solid #000;
-}
-.mob-hp-fill { height: 100%; background: #ff4444; width: 100%; transition: 0.1s; }
+        /* HUD & STATUS */
+        #hud {
+            position:fixed; top:20px; left:20px; background:rgba(0,0,0,0.7);
+            border:2px solid var(--gold); padding:10px; border-radius:10px; z-index:1000;
+        }
+        .bar-container { width: 150px; height: 12px; background: #333; border: 1px solid #fff; border-radius: 6px; margin: 5px 0; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.3s ease; }
 
-/* Túi đồ rơi ra */
-.loot-bag {
-    width: 40px; height: 40px; background-image: url('img/tui.png'); /* Đổi tên ảnh túi của bạn */
-    background-size: contain; cursor: pointer; animation: bounce 1s infinite;
-}
-@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-/* Giao diện Rương đồ */
-#inventory-ui {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(40, 40, 40, 0.95); border: 3px solid gold; padding: 20px;
-    display: none; z-index: 3000; text-align: center; border-radius: 10px;
-}
-.inv-slot {
-    width: 60px; height: 60px; background: #222; border: 2px solid #555;
-    display: inline-block; margin: 5px; position: relative;
-}
-.vukhi-icon {
-    width: 100%;
-    height: 100%;
-    background-image: url('img/vukhi.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-.rare-text { color: #ff00ff; font-weight: bold; text-shadow: 0 0 5px #fff; }
-#mobile-btns {
-    position:fixed; bottom:30px; right:30px; z-index:2000; 
-    display:flex; flex-direction: column; gap:15px; /* Chuyển thành cột để dễ bấm */
-}
-.btn-attack {
-    width:70px; height:70px; border-radius:50%; color:white; 
-    font-weight:bold; border:2px solid #fff; cursor:pointer;
-}
-</style>
+        /* POPUP & UI */
+        #respawn-screen {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000;
+        }
+        .damage-text {
+            position: absolute; font-weight: bold; font-size: 24px; pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards; z-index: 10000;
+        }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+        
+        /* Inventory optimized */
+        #inventory-ui {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #222; border: 3px solid var(--gold); padding: 20px;
+            display: none; z-index: 3000; border-radius: 15px; min-width: 280px;
+        }
+    </style>
 </head>
 <body>
-  <div id="status-bars" style="position:fixed; top:80px; left:20px; z-index:1001; width:150px;">
-    <div style="background:#333; height:12px; border-radius:5px; margin-bottom:5px; border:1px solid #fff;">
-        <div id="hp-fill" style="background:red; width:100%; height:100%; border-radius:4px; transition:0.2s;"></div>
-    </div>
-    <div style="background:#333; height:12px; border-radius:5px; border:1px solid #fff;">
-        <div id="mp-fill" style="background:blue; width:100%; height:100%; border-radius:4px; transition:0.2s;"></div>
-    </div>
-</div>
-
-<div id="mobile-btns">
-    <button class="btn-attack" onclick="pickFruit()" style="background:rgba(255,0,0,0.5);">HÁI</button>
-    <button class="btn-attack" onclick="normalAttack()" style="background:rgba(46, 204, 113, 0.6); border-color: #2ecc71;">ĐÁNH<br>THƯỜNG</button>
-    <button class="btn-attack" onclick="attack()" style="background:rgba(255,165,0,0.5); border-color: gold; height:85px; width:85px;">SKILL<br>(MP)</button>
-</div>
-
-    <button onclick="pickFruit()" style="width:60px; height:60px; border-radius:50%; background:rgba(255,0,0,0.5); color:white; border:2px solid #fff;">HÁI</button>
-    <button onclick="attack()" style="width:80px; height:80px; border-radius:50%; background:rgba(255,165,0,0.5); color:white; border:3px solid gold; font-weight:bold;">ATTACK</button>
-</div>
 
 <div id="hud">
-    <div style="font-size: 20px;">💰 VÀNG: <span id="gold">0</span></div>
-    <div>⚔️ ATK: <span id="atk">20</span></div>
-    <div class="controls-hint">Di chuyển: <b>W-A-S-D</b> | Đánh: <b>Space</b> hoặc <b>Chuột</b></div>
+    <div style="color:gold; font-weight:bold; margin-bottom:5px;">💰 <span id="gold-txt">0</span></div>
+    <div class="bar-container"><div id="hp-fill" class="bar-fill" style="background:var(--red); width:100%;"></div></div>
+    <div class="bar-container"><div id="mp-fill" class="bar-fill" style="background:var(--blue); width:100%;"></div></div>
+</div>
+
+<div id="joystick-zone"><div id="joystick-stick"></div></div>
+
+<div id="mobile-btns">
+    <div class="btn-action" style="background:rgba(231, 76, 60, 0.7);" onclick="pickFruit()">HÁI QUẢ</div>
+    <div class="btn-action" style="background:rgba(46, 204, 113, 0.7);" onclick="normalAttack()">ĐÁNH</div>
+    <div class="btn-action btn-big" style="background:linear-gradient(to right, #f39c12, #e67e22);" onclick="attack()">TUYỆT CHIÊU (20 MP)</div>
 </div>
 
 <div id="map">
     <div id="objects"></div>
     <div id="skill-effect"></div>
-    
-    <div class="entity" style="width:150px; height:120px; background-image:url('img/shop.png'); left:1050px; top:1100px"></div>
-    <div class="entity npc-char" style="background-image:url('img/char3.png'); left:1100px; top:1160px"></div>
-    <div class="entity npc-char" style="background-image:url('img/char2.png'); left:900px; top:1200px"></div>
-    <div id="mana-circle"></div>
     <div id="player" class="entity"></div>
     <div id="pet" class="entity"></div>
 </div>
+
+<button onclick="toggleInv()" style="position:fixed; bottom:30px; left:30px; z-index:2000; padding:12px 20px; background:var(--gold); border-radius:10px; font-weight:bold;">RƯƠNG ĐỒ</button>
+
 <div id="inventory-ui">
-    <h3>RƯƠNG ĐỒ</h3>
+    <h3 style="margin-bottom:15px; color:var(--gold)">HÀNH TRANG</h3>
     <div id="slots-container"></div>
-    <br>
-    <button onclick="toggleInv()" style="padding:5px 15px; cursor:pointer;">ĐÓNG</button>
+    <button onclick="toggleInv()" style="margin-top:15px; width:100%; padding:10px; background:#444; color:white; border:none;">ĐÓNG</button>
 </div>
-<button onclick="toggleInv()" style="position:fixed; bottom:30px; left:30px; z-index:2000; padding:10px; background:gold; font-weight:bold;">RƯƠNG ĐỒ</button>
+
+<div id="respawn-screen">
+    <h1 style="color:var(--red); font-size: 40px;">BẠN ĐÃ KIỆT SỨC</h1>
+    <p>Đang hồi phục sau...</p>
+    <div id="respawn-timer" style="font-size: 60px; color:white; font-weight:bold;">5</div>
+</div>
+
 <script>
 const state = { 
-    px: 1200, py: 1200, 
-    petX: 1150, petY: 1200, 
+    px: 1500, py: 1500, 
+    petX: 1450, petY: 1500,
     gold: 0, atk: 20, 
     hp: 100, maxHp: 100,
     mp: 100, maxMp: 100,
     isDead: false,
     inventory: [], 
-    hasWeapon: false,
-    keys: {} 
+    keys: {},
+    joy: { x: 0, y: 0, active: false }
 };
 
 const mobs = [];
 const trees = [];
-const map = document.getElementById("map");
-const player = document.getElementById("player");
-const pet = document.getElementById("pet");
-const skillEl = document.getElementById("skill-effect");
-const manaCircle = document.getElementById("mana-circle");
+const objectsLayer = document.getElementById("objects");
 
-/* 1. KHỞI TẠO CÂY */
-const treeGroup = document.getElementById("objects");
-for(let i=0; i<25; i++) {
+// --- 1. KHỞI TẠO THẾ GIỚI ---
+for(let i=0; i<30; i++) {
     const x = Math.random() * 2800;
     const y = Math.random() * 2800;
     const tree = document.createElement("div");
     tree.className = "entity";
-    tree.style.cssText = `background-image:url('img/cay.png'); left:${x}px; top:${y}px; width:100px; height:120px; z-index:${Math.floor(y)};`;
-    treeGroup.appendChild(tree);
+    tree.style.cssText = `background-image:url('img/cay.png'); left:${x}px; top:${y}px; width:100px; height:120px;`;
+    objectsLayer.appendChild(tree);
     trees.push({ x, y, el: tree, hasFruit: true });
 }
 
-/* 2. HỆ THỐNG QUÁI */
 function spawnMob() {
-    const x = Math.random()*2000 + 500;
-    const y = Math.random()*2000 + 500;
+    const x = Math.random()*2500 + 200;
+    const y = Math.random()*2500 + 200;
     const el = document.createElement("div");
     el.className = "entity mob";
+    el.innerHTML = `<div style="position:absolute; top:-10px; width:100%; height:5px; background:#333;"><div class="m-hp" style="width:100%; height:100%; background:red;"></div></div>`;
     el.style.left = x + "px"; el.style.top = y + "px";
-    
-    const hb = document.createElement("div");
-    hb.className = "mob-hp-bar";
-    const hf = document.createElement("div");
-    hf.className = "mob-hp-fill";
-    hb.appendChild(hf);
-    el.appendChild(hb);
-    
-    document.getElementById("objects").appendChild(el);
-    mobs.push({el, hf, x, y, hp:100, maxHp:100, alive:true});
+    objectsLayer.appendChild(el);
+    mobs.push({ el, hpEl: el.querySelector('.m-hp'), x, y, hp: 100, alive: true });
 }
-for(let i=0; i<6; i++) spawnMob();
+for(let i=0; i<8; i++) spawnMob();
 
-/* 3. LOGIC CHIẾN ĐẤU */
+// --- 2. HỆ THỐNG ĐIỀU KHIỂN JOYSTICK ---
+const stick = document.getElementById('joystick-stick');
+const zone = document.getElementById('joystick-zone');
 
-// Hàm xử lý khi quái chết (Rơi đồ)
-function handleMobDeath(m) {
-    m.alive = false;
-    m.el.style.transform = "scale(0)";
+zone.addEventListener('touchstart', (e) => state.joy.active = true);
+zone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = zone.getBoundingClientRect();
+    const centerX = rect.left + rect.width/2;
+    const centerY = rect.top + rect.height/2;
+    let dx = touch.clientX - centerX;
+    let dy = touch.clientY - centerY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const limit = 40;
     
-    // Tạo túi đồ
-    const bag = document.createElement("div");
-    bag.className = "entity loot-bag";
-    bag.style.left = m.x + "px";
-    bag.style.top = m.y + "px";
-    bag.style.zIndex = Math.floor(m.y);
-    
-    const isRare = Math.random() < 0.20; // 20% tỉ lệ rơi đồ hiếm
-    if(isRare) bag.style.filter = "hue-rotate(90deg) brightness(1.5) drop-shadow(0 0 5px gold)";
+    if(dist > limit) { dx *= limit/dist; dy *= limit/dist; }
+    stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    state.joy.x = dx / limit;
+    state.joy.y = dy / limit;
+});
+zone.addEventListener('touchend', () => {
+    stick.style.transform = `translate(-50%, -50%)`;
+    state.joy.x = 0; state.joy.y = 0;
+});
 
-    document.getElementById("objects").appendChild(bag);
-    
-    bag.onclick = (e) => {
-        e.stopPropagation();
-        if(isRare) {
-            state.inventory.push({ type: 'vukhi', name: 'Thần Kiếm', atk: 30 });
-            alert("BẠN ĐY NHẶT ĐƯỢC THẦN KIẾM!");
-        } else {
-            state.inventory.push({ type: 'chest', name: 'Rương Vàng' });
-            alert("Đã nhặt 1 Rương Vật Phẩm!");
-        }
-        bag.remove();
-        if(document.getElementById("inventory-ui").style.display === "block") renderSlots();
-    };
-
-    setTimeout(() => { 
-        m.el.remove(); 
-        spawnMob(); 
-    }, 1000);
+// --- 3. CHIẾN ĐẤU & HIỆU ỨNG ---
+function createDamageText(x, y, text, color) {
+    const d = document.createElement("div");
+    d.className = "damage-text";
+    d.innerText = text;
+    d.style.left = x + "px"; d.style.top = y + "px";
+    d.style.color = color;
+    objectsLayer.appendChild(d);
+    setTimeout(() => d.remove(), 800);
 }
 
-// Đánh thường (Không tốn Mana)
 function normalAttack() {
     if(state.isDead) return;
-    showEffect("grayscale(1) brightness(2)");
-
-    mobs.forEach(m => {
-        if(!m.alive) return;
-        const dist = Math.hypot(state.px - m.x, state.py - m.y);
-        if(dist < 110) {
-            m.hp -= (state.atk * 0.8); // Sát thương thấp hơn skill
-            m.hf.style.width = (m.hp / m.maxHp * 100) + "%";
-            if(m.hp <= 0) handleMobDeath(m);
-        }
-    });
+    performAttack(state.atk * 0.7, 100, "grayscale(1) brightness(1.5)");
 }
 
-// Tuyệt chiêu (Tốn Mana)
 function attack() {
-    if(state.isDead || state.mp < 20) return; 
-    state.mp -= 20; 
-    updateBars();
-    showEffect("none");
+    if(state.isDead || state.mp < 20) return;
+    state.mp -= 20;
+    performAttack(state.atk, 140, "none");
+}
+
+function performAttack(dmg, range, filter) {
+    const eff = document.getElementById("skill-effect");
+    eff.style.left = state.px + "px";
+    eff.style.top = state.py + "px";
+    eff.style.display = "block";
+    eff.style.filter = filter;
+    setTimeout(() => eff.style.display = "none", 200);
 
     mobs.forEach(m => {
         if(!m.alive) return;
-        const dist = Math.hypot(state.px - m.x, state.py - m.y);
-        if(dist < 130) {
-            m.hp -= state.atk;
-            m.hf.style.width = (m.hp / m.maxHp * 100) + "%";
-            if(m.hp <= 0) handleMobDeath(m);
+        const d = Math.hypot(state.px - m.x, state.py - m.y);
+        if(d < range) {
+            m.hp -= dmg;
+            m.hpEl.style.width = m.hp + "%";
+            createDamageText(m.x, m.y - 20, `-${Math.floor(dmg)}`, "yellow");
+            if(m.hp <= 0) killMob(m);
         }
     });
 }
 
-function showEffect(filterStr) {
-    skillEl.style.left = (state.px - 40) + "px";
-    skillEl.style.top = (state.py - 60) + "px";
-    skillEl.style.display = "block";
-    skillEl.style.filter = filterStr;
-    document.body.classList.add("shake");
-    setTimeout(() => { 
-        skillEl.style.display = "none"; 
-        document.body.classList.remove("shake");
-    }, 200);
-}
-
-/* 4. GIAO DIỆN & TIỆN ÍCH */
-function updateBars() {
-    document.getElementById("hp-fill").style.width = (state.hp / state.maxHp * 100) + "%";
-    document.getElementById("mp-fill").style.width = (state.mp / state.maxMp * 100) + "%";
+function killMob(m) {
+    m.alive = false;
+    m.el.style.opacity = "0";
+    state.gold += 50;
+    document.getElementById("gold-txt").innerText = state.gold;
+    setTimeout(() => { m.el.remove(); spawnMob(); }, 1000);
 }
 
 function pickFruit() {
-    if(state.isDead) return;
     trees.forEach(t => {
-        const dist = Math.hypot(state.px - (t.x + 20), state.py - (t.y + 40));
-        if(dist < 100 && t.hasFruit) {
-            state.hp = Math.min(state.maxHp, state.hp + 15);
-            updateBars();
+        const d = Math.hypot(state.px - t.x, state.py - t.y);
+        if(d < 80 && t.hasFruit) {
+            state.hp = Math.min(state.maxHp, state.hp + 20);
+            createDamageText(state.px, state.py - 30, "+20 HP", "#2ecc71");
             t.hasFruit = false;
-            t.el.style.filter = "grayscale(1) brightness(0.5)";
+            t.el.style.filter = "sepia(1) brightness(0.5)";
             setTimeout(() => { t.hasFruit = true; t.el.style.filter = "none"; }, 10000);
         }
     });
 }
 
+// --- 4. VÒNG LẶP CHÍNH (GAME LOOP) ---
+function update() {
+    if(state.isDead) return requestAnimationFrame(update);
+
+    let speed = 6;
+    let dx = state.joy.x * speed;
+    let dy = state.joy.y * speed;
+
+    // Support Keyboard PC
+    if(state.keys['w']) dy = -speed;
+    if(state.keys['s']) dy = speed;
+    if(state.keys['a']) dx = -speed;
+    if(state.keys['d']) dx = speed;
+
+    state.px += dx; state.py += dy;
+    
+    // Boundary check
+    state.px = Math.max(0, Math.min(2950, state.px));
+    state.py = Math.max(0, Math.min(2950, state.py));
+
+    // Mana Recovery
+    if(state.mp < state.maxMp) state.mp += 0.05;
+
+    // AI Mobs & Damage
+    mobs.forEach(m => {
+        if(!m.alive) return;
+        const d = Math.hypot(state.px - m.x, state.py - m.y);
+        if(d < 300) {
+            m.x += (state.px - m.x) * 0.02;
+            m.y += (state.py - m.y) * 0.02;
+        }
+        if(d < 50) {
+            state.hp -= 0.2;
+            if(state.hp <= 0) triggerRespawn();
+        }
+        m.el.style.left = m.x + "px";
+        m.el.style.top = m.y + "px";
+        m.el.style.zIndex = Math.floor(m.y);
+    });
+
+    // Pet follow
+    state.petX += (state.px - 50 - state.petX) * 0.08;
+    state.petY += (state.py - 10 - state.petY) * 0.08;
+
+    // Render Player & Camera
+    const p = document.getElementById("player");
+    const pet = document.getElementById("pet");
+    p.style.left = state.px + "px"; p.style.top = state.py + "px";
+    p.style.zIndex = Math.floor(state.py);
+    pet.style.left = state.petX + "px"; pet.style.top = state.petY + "px";
+    
+    document.getElementById("hp-fill").style.width = state.hp + "%";
+    document.getElementById("mp-fill").style.width = state.mp + "%";
+    document.getElementById("map").style.transform = `translate(${innerWidth/2 - state.px}px, ${innerHeight/2 - state.py}px)`;
+
+    requestAnimationFrame(update);
+}
+
+function triggerRespawn() {
+    state.isDead = true;
+    const screen = document.getElementById("respawn-screen");
+    const timerTxt = document.getElementById("respawn-timer");
+    screen.style.display = "flex";
+    let count = 5;
+    const interval = setInterval(() => {
+        count--;
+        timerTxt.innerText = count;
+        if(count <= 0) {
+            clearInterval(interval);
+            state.hp = 100; state.mp = 100;
+            state.px = 1500; state.py = 1500;
+            state.isDead = false;
+            screen.style.display = "none";
+        }
+    }, 1000);
+}
+
 function toggleInv() {
     const ui = document.getElementById("inventory-ui");
     ui.style.display = ui.style.display === "block" ? "none" : "block";
-    renderSlots();
 }
 
-function renderSlots() {
-    const container = document.getElementById("slots-container");
-    container.innerHTML = "";
-    state.inventory.forEach((item, index) => {
-        const slot = document.createElement("div");
-        slot.className = "inv-slot";
-        slot.innerHTML = item.type === 'vukhi' ? '<div class="vukhi-icon"></div>' : '📦';
-        slot.onclick = () => useItem(index);
-        container.appendChild(slot);
-    });
-}
-
-function useItem(index) {
-    const item = state.inventory[index];
-    if(item.type === 'chest') state.gold += 100;
-    else if(item.type === 'vukhi' && !state.hasWeapon) {
-        state.atk += item.atk;
-        state.hasWeapon = true;
-    }
-    state.inventory.splice(index, 1);
-    renderSlots();
-}
-
-/* 5. VÒNG LẶP GAME */
-window.onkeydown = e => { 
-    state.keys[e.key.toLowerCase()] = true; 
-    if(e.code === "Space") attack();
-    if(e.key.toLowerCase() === 'j') normalAttack();
-    if(e.key.toLowerCase() === 'f') pickFruit();
-};
+window.onkeydown = e => state.keys[e.key.toLowerCase()] = true;
 window.onkeyup = e => state.keys[e.key.toLowerCase()] = false;
 
-function loop() {
-    if(!state.isDead) {
-        let speed = 7;
-        let dx = 0, dy = 0;
-        if(state.keys['w']) dy = -speed;
-        if(state.keys['s']) dy = speed;
-        if(state.keys['a']) dx = -speed;
-        if(state.keys['d']) dx = speed;
-
-        state.px += dx; state.py += dy;
-        
-        // Mana recovery
-        if (state.mp < state.maxMp) {
-            state.mp += 0.1;
-            manaCircle.style.display = "block";
-            manaCircle.style.left = state.px + "px";
-            manaCircle.style.top = (state.py + 65) + "px";
-        } else {
-            manaCircle.style.display = "none";
-        }
-
-        // Mobs AI
-        mobs.forEach(m => {
-            if(!m.alive) return;
-            const dist = Math.hypot(state.px - m.x, state.py - m.y);
-            if(dist < 400) { 
-                m.x += (state.px - m.x) * 0.01;
-                m.y += (state.py - m.y) * 0.01;
-            }
-            if(dist < 60) {
-                state.hp -= 0.1;
-                if(state.hp <= 0) location.reload(); // Đơn giản hóa chết = reload
-            }
-            m.el.style.left = m.x + "px";
-            m.el.style.top = m.y + "px";
-        });
-
-        player.style.left = state.px + "px";
-        player.style.top = state.py + "px";
-        // PET FOLLOW
-state.petX += (state.px - 60 - state.petX) * 0.1;
-state.petY += (state.py - 20 - state.petY) * 0.1;
-
-pet.style.left = state.petX + "px";
-pet.style.top = state.petY + "px";
-pet.style.zIndex = Math.floor(state.petY);
-
-        map.style.transform = `translate(${innerWidth/2 - state.px}px, ${innerHeight/2 - state.py}px)`;
-    }
-    updateBars();
-    requestAnimationFrame(loop);
-}
-loop();
+// Start
+requestAnimationFrame(update);
 </script>
-<div id="respawn-screen">
-    <h1>BẠN ĐÃ HY SINH</h1>
-    <p>Đang chờ hồi sinh sau...</p>
-    <div id="respawn-timer">60</div>
-</div>
 </body>
 </html>
