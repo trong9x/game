@@ -1,347 +1,981 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>🔥 Hỏa Long Mobile - Official Version</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <style>
-        :root { --gold: #ffd700; --red: #ff4444; --blue: #3498db; }
-        * { margin:0; padding:0; box-sizing:border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { overflow:hidden; background:#111; font-family: 'Segoe UI', Arial; color: white; touch-action: none; }
+<meta charset="UTF-8" />
+<title>🔥 Hỏa Long GoPet Edition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<style>
+    :root { --red: #ff4d4d; --blue: #4d94ff; --gold: #ffcc00; --bg: rgba(20, 20, 20, 0.9); }
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+    html, body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    touch-action:none;
+}
 
-        /* MAP */
-        #map {
-            position:absolute; width:3000px; height:3000px;
-            background: url('img/co.png') repeat;
-            background-size: 100px 100px;
-            will-change: transform;
-        }
+    #map{
+    position:fixed;
+    width:3000px;height:3000px;
+    background:url('img/co.png') repeat;
+    background-size:80px;
+    will-change: transform;
+    transform-origin: 0 0;
+}
 
-        /* ENTITY BASE */
-        .entity {
-            position:absolute; background-repeat:no-repeat; background-size:contain;
-            background-position:bottom center; image-rendering:pixelated;
-            transition: filter 0.2s;
-        }
+.entity{
+    position:absolute;
+    background-size:contain;
+    background-repeat:no-repeat;
+    background-position:bottom center;
+    image-rendering:pixelated;
+    will-change:left, top;
+}
 
-        #player { width:70px; height:80px; background-image:url('img/char1.png'); z-index: 100; }
-        #pet { width:60px; height:60px; background-image:url('img/smile.png'); }
-        .mob { width:80px; height:90px; background-image:url('img/boss.png'); }
-        .npc-char { width:70px; height:80px; }
-        
-        /* HIỆU ỨNG SKILL */
-        #skill-effect {
-            position: absolute; width: 120px; height: 120px;
-            background: url('img/kill.png') no-repeat center;
-            background-size: contain; display: none; pointer-events: none; z-index: 9999;
-            transform: translate(-50%, -50%);
-        }
+    #player { width: 70px; height: 80px; background-image: url('img/char1.png'); z-index: 100; }
+    #pet { width:55px;height:55px;background-image:url('img/smile.png');z-index:101; }
 
-        /* JOYSTICK VIRTUAL */
-        #joystick-zone {
-            position: fixed; bottom: 50px; left: 50px; width: 120px; height: 120px;
-            background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 2000;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        #joystick-stick {
-            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
-            background: rgba(255,255,255,0.4); border-radius: 50%;
-            transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
+    .mob { width: 80px; height: 90px; background-image: url('img/boss.png'); }
 
-        /* MOBILE BUTTONS */
-        #mobile-btns {
-            position:fixed; bottom:30px; right:30px; z-index:2000; 
-            display:grid; grid-template-columns: repeat(2, 80px); gap:15px;
-        }
-        .btn-action {
-            width:80px; height:80px; border-radius:50%; color:white; 
-            font-weight:bold; border:3px solid rgba(255,255,255,0.6); cursor:pointer;
-            display: flex; align-items: center; justify-content: center; text-align: center;
-            font-size: 12px; text-shadow: 1px 1px 2px black;
-        }
-        .btn-big { grid-column: span 2; width: 100%; height: 60px; border-radius: 30px; }
+    /* GOPET HUD */
+    #hud {
+        position: fixed; top: 10px; left: 10px; background: var(--bg);
+        border: 2px solid #924545; border-radius: 5px; padding: 8px; z-index: 1000; width: 180px;
+    }
+    .stat-row { font-size: 12px; margin-bottom: 3px; font-weight: bold; color: indianred;}
+    .bar { width: 100%; height: 10px; background: #889185; border: 1px solid #90a58a; margin-top: 2px; }
+    .fill { height: 100%; width: 100%; transition: width 0.3s ease; }
 
-        /* HUD & STATUS */
-        #hud {
-            position:fixed; top:20px; left:20px; background:rgba(0,0,0,0.7);
-            border:2px solid var(--gold); padding:10px; border-radius:10px; z-index:1000;
-        }
-        .bar-container { width: 150px; height: 12px; background: #333; border: 1px solid #fff; border-radius: 6px; margin: 5px 0; overflow: hidden; }
-        .bar-fill { height: 100%; transition: width 0.3s ease; }
+    /* GOPET MENU (Bottom Center) */
+    #actionMenu {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        display: none; background: var(--bg); border: 2px solid var(--gold);
+        border-radius: 10px; padding: 10px; gap: 10px; z-index: 2000;
+        box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+    .gopet-btn {
+        padding: 10px 20px; background: #444; border: 1px solid #777;
+        color: white; font-weight: bold; border-radius: 5px; cursor: pointer;
+        text-transform: uppercase; font-size: 13px;
+    }
+    .gopet-btn:hover { background: #666; border-color: #fff; }
+    .gopet-btn:active { background: var(--gold); color: #000; }
 
-        /* POPUP & UI */
-        #respawn-screen {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000;
-        }
-        .damage-text {
-            position: absolute; font-weight: bold; font-size: 24px; pointer-events: none;
-            animation: floatUp 0.8s ease-out forwards; z-index: 10000;
-        }
-        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
-        
-        /* Inventory optimized */
-        #inventory-ui {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #222; border: 3px solid var(--gold); padding: 20px;
-            display: none; z-index: 3000; border-radius: 15px; min-width: 280px;
-        }
-    </style>
+    /* DAMAGE TEXT */
+    .damage {
+        position: absolute; font-weight: bold; font-size: 24px;
+        text-shadow: 1px 1px #000; z-index: 9999; animation: floatUp 0.6s forwards;
+    }
+    @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
+
+    /* TURN INDICATOR */
+    #turnIndicator {
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+        background: rgba(255, 204, 0, 0.8); color: #000; padding: 5px 15px;
+font-weight: bold; border-radius: 20px; display: none; z-index: 1000;
+    }
+    /* ===== MOB HP BAR PRO ===== */
+.hpbar{
+    position:absolute;
+    width:72px;
+    height:8px;
+    background:#111;
+    border:1px solid #000;
+    border-radius:6px;
+    overflow:hidden;
+    top:-12px;
+    box-shadow:0 0 4px #000;
+}
+
+.hpfill{
+    height:100%;
+    width:100%;
+    background:linear-gradient(90deg,#ff3b3b,#ff0000,#aa0000);
+    transition:width .25s ease;
+}
+
+/* ===== SKILL EFFECT ===== */
+#skillFx{
+position:absolute;
+width:120px;
+height:120px;
+background:url('img/kill.png') center/contain no-repeat;
+pointer-events:none;
+display:none;
+z-index:9999;
+}
+/* ==== FIRE TRAIL ==== */
+.trail{
+position:absolute;
+width:26px;height:26px;
+background:url('img/kill.png') center/contain no-repeat;
+pointer-events:none;
+opacity:.9;
+filter:brightness(2) saturate(1.5);
+animation:trailFade .35s linear forwards;
+z-index:50;
+}
+
+@keyframes trailFade{
+to{
+opacity:0;
+transform:scale(.4);
+}
+}
+.skillGlow{
+filter: drop-shadow(0 0 8px orange)
+        drop-shadow(0 0 16px red);
+}
+.hitFlash{
+position:absolute;
+width:160px;height:160px;
+background:radial-gradient(circle,rgba(255,200,0,.9),transparent 70%);
+pointer-events:none;
+animation:flash .25s forwards;
+z-index:9998;
+}
+
+@keyframes flash{
+to{opacity:0;transform:scale(1.6);}
+}
+
+/* ===== STAR COLOR ===== */
+.star1{filter:none}
+.star2{filter:hue-rotate(90deg)}
+.star3{filter:hue-rotate(180deg)}
+.star4{filter:hue-rotate(260deg)}
+.star5{
+    filter:hue-rotate(330deg) brightness(1.4);
+    box-shadow:0 0 14px red;
+}
+
+/* ===== DROP ITEM ===== */
+.drop{
+position:absolute;
+width:32px;height:32px;
+font-size:26px;
+text-align:center;
+line-height:32px;
+pointer-events:none;
+animation:bounce 1s infinite alternate;
+z-index:60;
+}
+
+@keyframes bounce{
+to{transform:translateY(-8px)}
+}
+#miniMap{
+position:fixed;
+right:10px;
+top:10px;
+width:140px;
+height:140px;
+background:rgba(0,0,0,.6);
+border:2px solid #fff;
+border-radius:10px;
+z-index:2000;
+}
+#joy{
+position:fixed;
+left:20px;
+bottom:20px;
+width:120px;
+height:120px;
+background:rgba(255,255,255,.15);
+border-radius:50%;
+z-index:3000;
+touch-action:none;
+}
+#shopNpc{
+    width:70px;
+    height:80px;
+    background-image:url('img/char2.png');
+    z-index:100;
+}
+
+.hpbar{
+    opacity:0;
+    transition:opacity .15s;
+}
+
+.hpbar.show{
+    opacity:1;
+}
+/* PET HP BAR */
+#pet .hpbar{
+    width:55px;
+    height:6px;
+    top:-10px;
+}
+
+#pet .hpfill{
+    background:linear-gradient(90deg,#00ff99,#00cc66);
+}
+#petInfo{
+position:fixed;
+left:10px;
+top:140px;
+background:rgba(0,0,0,.8);
+color:#00ff99;
+padding:8px;
+font-size:12px;
+border-radius:6px;
+border:1px solid #00ff99;
+z-index:1000;
+}
+/* ===== WEAPON DROP ===== */
+.weaponDrop{
+position:absolute;
+width:48px;
+height:48px;
+background-size:contain;
+background-repeat:no-repeat;
+animation:bounce 1s infinite alternate;
+z-index:80;
+pointer-events:none;
+}
+.bag-slot{
+width:40px;
+height:40px;
+background:#222;
+border:1px solid #555;
+background-size:contain;
+background-repeat:no-repeat;
+background-position:center;
+cursor:pointer;
+}
+
+.bag-slot:hover{
+border-color:#00ff99;
+}
+#bagUI img{
+    image-rendering:pixelated;
+}
+#bagBtn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    padding:10px 16px;
+    background:#00aa66;
+    color:white;
+    font-weight:bold;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    z-index:7000;
+}
+
+#bagBtn:hover{
+    background:#00cc88;
+}
+
+</style>
 </head>
 <body>
 
 <div id="hud">
-    <div style="color:gold; font-weight:bold; margin-bottom:5px;">💰 <span id="gold-txt">0</span></div>
-    <div class="bar-container"><div id="hp-fill" class="bar-fill" style="background:var(--red); width:100%;"></div></div>
-    <div class="bar-container"><div id="mp-fill" class="bar-fill" style="background:var(--blue); width:100%;"></div></div>
+
+    <div class="stat-row">💰 VÀNG: <span id="gold">0</span></div>
+
+    <div class="stat-row">HP: <span id="hp-val">100/100</span></div>
+
+    <div class="bar">
+        <div id="hp-fill" class="fill" style="background:var(--red)"></div>
+    </div>
+
+    <div class="stat-row">MP: <span id="mp-val">100/100</span></div>
+
+    <div class="bar">
+        <div id="mp-fill" class="fill" style="background:var(--blue)"></div>
+    </div>
+
+    <div class="stat-row">🐲 LV: <span id="pet-lv">1</span></div>
+
+    <div class="bar">
+        <div id="exp-fill" class="fill" style="background:#00ff99;width:0%"></div>
+    </div>
+<div id="shopMenu" style="
+position:fixed;
+bottom:100px;
+left:50%;
+transform:translateX(-50%);
+background:rgba(20,20,20,.95);
+border:2px solid gold;
+padding:12px;
+display:none;
+z-index:5000;
+border-radius:10px;
+">
+
+<button class="gopet-btn" onclick="buyHP()">❤️ Hồi HP (50 vàng)</button>
+<button class="gopet-btn" onclick="buyMP()">🔵 Hồi MP (50 vàng)</button>
+
 </div>
 
-<div id="joystick-zone"><div id="joystick-stick"></div></div>
+  
+</div>
+<!-- ===== INVENTORY ===== -->
+<div id="bag" style="
+position:fixed;
+right:20px;
+bottom:220px;
+width:220px;
+background:rgba(0,0,0,.9);
+border:2px solid #00ff99;
+padding:8px;
+display:none;
+border-radius:10px;
+z-index:5000;
+">
 
-<div id="mobile-btns">
-    <div class="btn-action" style="background:rgba(231, 76, 60, 0.7);" onclick="pickFruit()">HÁI QUẢ</div>
-    <div class="btn-action" style="background:rgba(46, 204, 113, 0.7);" onclick="normalAttack()">ĐÁNH</div>
-    <div class="btn-action btn-big" style="background:linear-gradient(to right, #f39c12, #e67e22);" onclick="attack()">TUYỆT CHIÊU (20 MP)</div>
+<b style="color:#00ff99">🎒 RƯƠNG ĐỒ (10)</b>
+<div id="bagSlots" style="
+display:grid;
+grid-template-columns:repeat(5,40px);
+gap:6px;
+margin-top:6px;
+"></div>
+
+<button class="gopet-btn" onclick="toggleBag()">Đóng</button>
 </div>
 
+<div id="equipMenu" style="
+position:fixed;
+bottom:90px;
+right:20px;
+background:rgba(0,0,0,.95);
+border:2px solid #00ff99;
+padding:12px;
+display:none;
+z-index:5000;
+border-radius:10px;
+color:#00ff99;
+font-size:13px;
+">
+
+<b>🐲 PET EQUIP</b><br><br>
+
+Weapon: <span id="eqWeapon">None</span><br>
+Armor: <span id="eqArmor">None</span><br><br>
+
+ATK: <span id="eqAtk"></span><br>
+HP: <span id="eqHp"></span><br><br>
+
+<button class="gopet-btn" onclick="toggleEquip()">Đóng</button>
+
+</div>
+
+ 
+<div id="turnIndicator">LƯỢT CỦA BẠN</div>
+
+<div id="actionMenu">
+    <button class="gopet-btn" onclick="petAttack()">TẤN CÔNG</button>
+    <button class="gopet-btn" style="color:var(--blue)" onclick="useSkill()">KỸ NĂNG</button>
+</div>
+<canvas id="miniMap"></canvas>
 <div id="map">
     <div id="objects"></div>
-    <div id="skill-effect"></div>
     <div id="player" class="entity"></div>
     <div id="pet" class="entity"></div>
+    <div id="skillFx"></div>
+    <div id="shopNpc" class="entity"></div>
+
 </div>
-
-<button onclick="toggleInv()" style="position:fixed; bottom:30px; left:30px; z-index:2000; padding:12px 20px; background:var(--gold); border-radius:10px; font-weight:bold;">RƯƠNG ĐỒ</button>
-
-<div id="inventory-ui">
-    <h3 style="margin-bottom:15px; color:var(--gold)">HÀNH TRANG</h3>
-    <div id="slots-container"></div>
-    <button onclick="toggleInv()" style="margin-top:15px; width:100%; padding:10px; background:#444; color:white; border:none;">ĐÓNG</button>
-</div>
-
-<div id="respawn-screen">
-    <h1 style="color:var(--red); font-size: 40px;">BẠN ĐÃ KIỆT SỨC</h1>
-    <p>Đang hồi phục sau...</p>
-    <div id="respawn-timer" style="font-size: 60px; color:white; font-weight:bold;">5</div>
-</div>
-
+<div id="joy"></div>
+<button id="bagBtn">🎒 RƯƠNG</button>
 <script>
-const state = { 
-    px: 1500, py: 1500, 
-    petX: 1450, petY: 1500,
-    gold: 0, atk: 20, 
-    hp: 100, maxHp: 100,
-    mp: 100, maxMp: 100,
-    isDead: false,
-    inventory: [], 
-    keys: {},
-    joy: { x: 0, y: 0, active: false }
+    function spawnTrail(x,y){
+    const t=document.createElement("div");
+    t.className="trail";
+    t.style.left=x+"px";
+    t.style.top=y+"px";
+    objects.appendChild(t);
+    setTimeout(()=>t.remove(),350);
+}
+
+const state = {
+
+    px:1500, py:1500,
+    petX:1440, petY:1500,
+    shopX:1600,
+    shopY:1450,
+
+    gold:0,
+
+    level:1,
+    exp:0,
+    nextExp:100,
+
+    atk:20,
+    inventory: [],
+    maxBag: 20,
+
+    inBattle:false,
+    turn:"player",
+    target:null,
+    pet:{
+    level:1,
+    hp:120,
+    maxHp:120,
+    mp:60,
+    maxMp:60,
+    atk:25,
+
+    equip:{
+        weapon:null,
+        armor:null
+    }
+}
+
+  
 };
 
 const mobs = [];
-const trees = [];
-const objectsLayer = document.getElementById("objects");
+const drops = [];
 
-// --- 1. KHỞI TẠO THẾ GIỚI ---
-for(let i=0; i<30; i++) {
-    const x = Math.random() * 2800;
-    const y = Math.random() * 2800;
-    const tree = document.createElement("div");
-    tree.className = "entity";
-    tree.style.cssText = `background-image:url('img/cay.png'); left:${x}px; top:${y}px; width:100px; height:120px;`;
-    objectsLayer.appendChild(tree);
-    trees.push({ x, y, el: tree, hasFruit: true });
+const map = document.getElementById("map");
+const objects = document.getElementById("objects");
+const player = document.getElementById("player");
+
+const mini = document.getElementById("miniMap");
+const mctx = mini.getContext("2d");
+
+
+mini.width = 140;
+mini.height = 140;
+
+// ============================
+// ==========
+const joy = document.getElementById("joy");
+
+let joyX=0, joyY=0;
+
+joy.addEventListener("touchmove",e=>{
+    const t=e.touches[0];
+    const r=joy.getBoundingClientRect();
+
+    joyX=(t.clientX-r.left-60)/60;
+    joyY=(t.clientY-r.top-60)/60;
+
+    joyX=Math.max(-1,Math.min(1,joyX));
+    joyY=Math.max(-1,Math.min(1,joyY));
+});
+
+joy.addEventListener("touchend",()=>{
+    joyX=0; joyY=0;
+});
+
+// Khởi tạo quái
+function spawn(){
+
+    for(let i=0;i<8;i++){
+
+        const star = 1 + Math.floor(Math.random()*5);
+
+        const x = Math.random()*2400+300;
+        const y = Math.random()*2400+300;
+
+        const el=document.createElement("div");
+        el.className="entity mob star"+star;
+
+        el.style.left=x+"px";
+        el.style.top=y+"px";
+
+        // ⭐ label
+        const label=document.createElement("div");
+        label.style.position="absolute";
+        label.style.top="-18px";
+        label.style.left="0";
+        label.style.color="yellow";
+        label.style.fontSize="12px";
+        label.innerText="★".repeat(star);
+
+        el.appendChild(label);
+        // ===== HP BAR =====
+const bar = document.createElement("div");
+bar.className="hpbar";
+
+const fill = document.createElement("div");
+fill.className="hpfill";
+
+bar.appendChild(fill);
+el.appendChild(bar);
+
+el.hpFill = fill;
+
+        objects.appendChild(el);
+
+        mobs.push({
+            x,y,el,
+            star,
+            hp: 80*star,
+            maxHp:80*star,
+            dmg: 8*star,
+            gold: 50*star,
+            exp: 40*star,
+            alive:true
+        });
+    }
 }
 
-function spawnMob() {
-    const x = Math.random()*2500 + 200;
-    const y = Math.random()*2500 + 200;
-    const el = document.createElement("div");
-    el.className = "entity mob";
-    el.innerHTML = `<div style="position:absolute; top:-10px; width:100%; height:5px; background:#333;"><div class="m-hp" style="width:100%; height:100%; background:red;"></div></div>`;
-    el.style.left = x + "px"; el.style.top = y + "px";
-    objectsLayer.appendChild(el);
-    mobs.push({ el, hpEl: el.querySelector('.m-hp'), x, y, hp: 100, alive: true });
+// Kiểm tra đụng độ (Giống GoPet)
+function checkCollision() {
+    if(state.inBattle) return;
+    mobs.forEach(m => {
+        if(!m.alive) return;
+        const d = Math.hypot(state.px - m.x, state.py - m.y);
+        if(d < 100) startBattle(m);
+    });
 }
-for(let i=0; i<8; i++) spawnMob();
 
-// --- 2. HỆ THỐNG ĐIỀU KHIỂN JOYSTICK ---
-const stick = document.getElementById('joystick-stick');
-const zone = document.getElementById('joystick-zone');
-
-zone.addEventListener('touchstart', (e) => state.joy.active = true);
-zone.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const rect = zone.getBoundingClientRect();
-    const centerX = rect.left + rect.width/2;
-    const centerY = rect.top + rect.height/2;
-    let dx = touch.clientX - centerX;
-    let dy = touch.clientY - centerY;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    const limit = 40;
+function startBattle(m) {
+    state.inBattle = true;
+    state.target = m;
+    state.turn = "player";
+    document.getElementById("actionMenu").style.display = "flex";
+    document.getElementById("turnIndicator").style.display = "block";
     
-    if(dist > limit) { dx *= limit/dist; dy *= limit/dist; }
-    stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-    state.joy.x = dx / limit;
-    state.joy.y = dy / limit;
-});
-zone.addEventListener('touchend', () => {
-    stick.style.transform = `translate(-50%, -50%)`;
-    state.joy.x = 0; state.joy.y = 0;
-});
+  
+    updateHUD();
+}
 
-// --- 3. CHIẾN ĐẤU & HIỆU ỨNG ---
-function createDamageText(x, y, text, color) {
+function drawMiniMap(){
+
+    mctx.clearRect(0,0,140,140);
+
+    const scale = 140/3000;
+
+    // ===== nền =====
+    mctx.fillStyle="#1a1a1a";
+    mctx.fillRect(0,0,140,140);
+
+    // ===== mobs (THÊM LẠI) =====
+    mobs.forEach(m=>{
+        if(!m.alive) return;
+
+        mctx.fillStyle="red";
+        mctx.fillRect(m.x*scale, m.y*scale, 3, 3);
+    });
+
+    // ===== player =====
+    mctx.fillStyle="cyan";
+    mctx.fillRect(state.px*scale,state.py*scale,4,4);
+}
+
+function dropItem(x,y,type){
+
+    const d=document.createElement("div");
+    d.className="drop";
+
+    if(type==="gold"){
+        d.innerText="💰";
+        d.value=20;
+    }
+    if(type==="hp"){
+        d.innerText="❤️";
+        d.value=25;
+    }
+
+    d.style.left=x+"px";
+    d.style.top=y+"px";
+
+    objects.appendChild(d);
+
+    d.type=type;
+
+    d.update=()=>{
+        const dist=Math.hypot(state.px-x,state.py-y);
+
+        if(dist<60){
+            if(type==="gold") state.gold+=d.value;
+            if(type==="hp")
+    state.pet.hp = Math.min(state.pet.maxHp, state.pet.hp + d.value);
+
+
+            d.remove();
+        }
+    };
+
+    drops.push(d);
+}
+function dropWeapon(x,y){
+
+    const w = rollWeapon();
+
     const d = document.createElement("div");
-    d.className = "damage-text";
-    d.innerText = text;
-    d.style.left = x + "px"; d.style.top = y + "px";
+    d.className="drop";
+    d.style.backgroundImage = `url(${w.img})`;
+    d.style.width="34px";
+    d.style.height="34px";
+    d.style.left=x+"px";
+    d.style.top=y+"px";
+
+    objects.appendChild(d);
+
+    let picked = false; // ⭐ CHỐT QUAN TRỌNG
+
+    d.update = ()=>{
+
+        if(picked) return; // ⭐ chặn spam
+
+        const dist = Math.hypot(state.px-x,state.py-y);
+
+        if(dist < 60){
+
+            if(addToBag(w)){
+                picked = true; // ⭐ chỉ nhặt 1 lần
+                d.remove();
+            }
+        }
+    };
+
+    drops.push(d);
+}
+
+
+function mobTurn() {
+    if(!state.inBattle) return;
+    
+    // Quái rung rinh tấn công
+    state.target.el.style.transform = "scale(1.2)";
+    setTimeout(() => {
+        state.target.el.style.transform = "scale(1)";
+        const dmg = state.target.dmg;
+
+        state.pet.hp = Math.max(0, state.pet.hp - dmg);
+        showDmg(PetSystem.x, PetSystem.y, dmg, "red");
+
+        updateHUD();
+
+        if(state.pet.hp <= 0)
+ {
+            alert("Pet của bạn đã kiệt sức!");
+            location.reload();
+        } else {
+            state.turn = "player";
+            document.getElementById("turnIndicator").innerText = "LƯỢT CỦA BẠN";
+            document.getElementById("actionMenu").style.display = "flex";
+        }
+    }, 200);
+}
+function toggleEquip(){
+    const m = document.getElementById("equipMenu");
+
+    if(m.style.display==="block"){
+        m.style.display="none";
+        return;
+    }
+
+    m.style.display="block";
+
+    document.getElementById("eqWeapon").innerText =
+        state.pet.equip.weapon?.name || "None";
+
+    document.getElementById("eqArmor").innerText =
+        state.pet.equip.armor?.name || "None";
+
+    document.getElementById("eqAtk").innerText = getPetAtk();
+    document.getElementById("eqHp").innerText  = getPetHp();
+}
+
+function flashHit(x,y){
+    const f=document.createElement("div");
+    f.className="hitFlash";
+    f.style.left=(x-70)+"px";
+    f.style.top=(y-70)+"px";
+    objects.appendChild(f);
+    setTimeout(()=>f.remove(),250);
+}
+function shakeCamera(){
+    map.style.transition="transform .05s";
+    map.style.transform+=" translate(6px,0)";
+    setTimeout(()=>map.style.transform=map.style.transform.replace(" translate(6px,0)",""),50);
+}
+function respawnMob(){
+
+    const star = 1 + Math.floor(Math.random()*5);
+
+    const x = Math.random()*2400+300;
+    const y = Math.random()*2400+300;
+
+    const el=document.createElement("div");
+    el.className="entity mob star"+star;
+
+    el.style.left=x+"px";
+    el.style.top=y+"px";
+
+    // ⭐ HP BAR (BẮT BUỘC)
+    const bar = document.createElement("div");
+    bar.className="hpbar";
+
+    const fill = document.createElement("div");
+    fill.className="hpfill";
+
+    bar.appendChild(fill);
+    el.appendChild(bar);
+
+    el.hpFill = fill;
+
+    objects.appendChild(el);
+
+    mobs.push({
+        x,y,el,
+        star,
+        hp: 80*star,
+        maxHp:80*star,
+        dmg: 8*star,
+        gold: 50*star,
+        exp: 40*star,
+        alive:true
+    });
+}
+
+function winBattle(){
+
+    const m = state.target;
+
+    m.alive=false;
+    m.el.remove();
+    setTimeout(respawnMob, 2000); // spawn lại sau 2s
+   
+
+    // 🎁 DROP
+if(Math.random()<0.9) dropItem(m.x,m.y,"gold");
+if(Math.random()<0.4) dropItem(m.x+20,m.y,"hp");
+if(Math.random() < 0.4) dropWeapon(m.x+10, m.y+10);
+
+
+    state.gold += m.gold;
+
+    // ===== EXP =====
+    state.exp += m.exp;
+
+    while(state.exp >= state.nextExp){
+
+    state.exp -= state.nextExp;
+    state.nextExp = Math.floor(state.nextExp * 1.4);
+
+    // ⭐ PET LEVEL UP
+    state.pet.level++;
+
+    state.pet.maxHp += 5;
+    state.pet.maxMp += 5;
+    state.pet.atk   += 2;
+
+    state.pet.hp = state.pet.maxHp;
+    state.pet.mp = state.pet.maxMp;
+}
+
+
+    state.inBattle=false;
+
+    document.getElementById("actionMenu").style.display="none";
+    document.getElementById("turnIndicator").style.display="none";
+
+    updateHUD();
+}
+
+function showDmg(x, y, dmg, color) {
+    const d = document.createElement("div");
+    d.className = "damage";
+    d.innerText = "-" + dmg;
+    d.style.left = x + "px"; d.style.top = (y - 40) + "px";
     d.style.color = color;
-    objectsLayer.appendChild(d);
-    setTimeout(() => d.remove(), 800);
+    document.getElementById("objects").appendChild(d);
+    setTimeout(() => d.remove(), 600);
+}
+function checkShop(){
+
+    const menu = document.getElementById("shopMenu");
+    if(!menu) return;
+
+    const d = Math.hypot(state.px-state.shopX, state.py-state.shopY);
+
+    if(d < 90 && !state.inBattle){
+        menu.style.display="block";
+    }else{
+        menu.style.display="none";
+    }
 }
 
-function normalAttack() {
-    if(state.isDead) return;
-    performAttack(state.atk * 0.7, 100, "grayscale(1) brightness(1.5)");
+// =======================
+// PET EQUIP STATS
+// =======================
+function getPetAtk(){
+    let atk = state.pet.atk;
+
+    if(state.pet.equip.weapon)
+        atk += state.pet.equip.weapon.atk;
+
+    return atk;
 }
 
-function attack() {
-    if(state.isDead || state.mp < 20) return;
-    state.mp -= 20;
-    performAttack(state.atk, 140, "none");
+function getPetHp(){
+    let hp = state.pet.maxHp;
+
+    if(state.pet.equip.armor)
+        hp += state.pet.equip.armor.hp;
+
+    return hp;
 }
 
-function performAttack(dmg, range, filter) {
-    const eff = document.getElementById("skill-effect");
-    eff.style.left = state.px + "px";
-    eff.style.top = state.py + "px";
-    eff.style.display = "block";
-    eff.style.filter = filter;
-    setTimeout(() => eff.style.display = "none", 200);
+function buyHP(){
 
-    mobs.forEach(m => {
-        if(!m.alive) return;
-        const d = Math.hypot(state.px - m.x, state.py - m.y);
-        if(d < range) {
-            m.hp -= dmg;
-            m.hpEl.style.width = m.hp + "%";
-            createDamageText(m.x, m.y - 20, `-${Math.floor(dmg)}`, "yellow");
-            if(m.hp <= 0) killMob(m);
-        }
-    });
+    if(state.gold < 50) return alert("Không đủ vàng!");
+
+    state.gold -= 50;
+
+    state.pet.hp = state.pet.maxHp;   // ⭐ PET
+
+    updateHUD();
 }
 
-function killMob(m) {
-    m.alive = false;
-    m.el.style.opacity = "0";
-    state.gold += 50;
-    document.getElementById("gold-txt").innerText = state.gold;
-    setTimeout(() => { m.el.remove(); spawnMob(); }, 1000);
+
+function buyMP(){
+
+    if(state.gold < 50) return alert("Không đủ vàng!");
+
+    state.gold -= 50;
+
+    state.pet.mp = state.pet.maxMp;   // ⭐ PET
+
+    updateHUD();
 }
 
-function pickFruit() {
-    trees.forEach(t => {
-        const d = Math.hypot(state.px - t.x, state.py - t.y);
-        if(d < 80 && t.hasFruit) {
-            state.hp = Math.min(state.maxHp, state.hp + 20);
-            createDamageText(state.px, state.py - 30, "+20 HP", "#2ecc71");
-            t.hasFruit = false;
-            t.el.style.filter = "sepia(1) brightness(0.5)";
-            setTimeout(() => { t.hasFruit = true; t.el.style.filter = "none"; }, 10000);
-        }
-    });
+
+function updateHUD(){
+
+    // ===== HP =====
+    document.getElementById("hp-fill").style.width =
+        (state.pet.hp/state.pet.maxHp*100)+"%";
+
+    document.getElementById("hp-val").innerText =
+        Math.floor(state.pet.hp) + "/" + state.pet.maxHp;
+
+
+    // ===== MP =====
+    document.getElementById("mp-fill").style.width =
+        (state.pet.mp/state.pet.maxMp*100)+"%";
+
+    document.getElementById("mp-val").innerText =
+        Math.floor(state.pet.mp) + "/" + state.pet.maxMp;
+
+
+    // ===== LEVEL =====
+    document.getElementById("pet-lv").innerText =
+        state.pet.level;
+
+
+    // ===== EXP =====
+    document.getElementById("exp-fill").style.width =
+        (state.exp/state.nextExp*100)+"%";
+
+
+    // ===== GOLD =====
+    document.getElementById("gold").innerText =
+        state.gold;
 }
 
-// --- 4. VÒNG LẶP CHÍNH (GAME LOOP) ---
-function update() {
-    if(state.isDead) return requestAnimationFrame(update);
 
-    let speed = 6;
-    let dx = state.joy.x * speed;
-    let dy = state.joy.y * speed;
 
-    // Support Keyboard PC
-    if(state.keys['w']) dy = -speed;
-    if(state.keys['s']) dy = speed;
-    if(state.keys['a']) dx = -speed;
-    if(state.keys['d']) dx = speed;
+// Di chuyển (Khi không chiến đấu)
+const keys = {};
 
-    state.px += dx; state.py += dy;
-    
-    // Boundary check
-    state.px = Math.max(0, Math.min(2950, state.px));
-    state.py = Math.max(0, Math.min(2950, state.py));
+window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-    // Mana Recovery
-    if(state.mp < state.maxMp) state.mp += 0.05;
+function loop(){
 
-    // AI Mobs & Damage
-    mobs.forEach(m => {
-        if(!m.alive) return;
-        const d = Math.hypot(state.px - m.x, state.py - m.y);
-        if(d < 300) {
-            m.x += (state.px - m.x) * 0.02;
-            m.y += (state.py - m.y) * 0.02;
-        }
-        if(d < 50) {
-            state.hp -= 0.2;
-            if(state.hp <= 0) triggerRespawn();
-        }
-        m.el.style.left = m.x + "px";
-        m.el.style.top = m.y + "px";
-        m.el.style.zIndex = Math.floor(m.y);
-    });
+    const speed = 5;
 
-    // Pet follow
-    state.petX += (state.px - 50 - state.petX) * 0.08;
-    state.petY += (state.py - 10 - state.petY) * 0.08;
+state.px += joyX * speed;
+state.py += joyY * speed;
 
-    // Render Player & Camera
-    const p = document.getElementById("player");
-    const pet = document.getElementById("pet");
-    p.style.left = state.px + "px"; p.style.top = state.py + "px";
-    p.style.zIndex = Math.floor(state.py);
-    pet.style.left = state.petX + "px"; pet.style.top = state.petY + "px";
-    
-    document.getElementById("hp-fill").style.width = state.hp + "%";
-    document.getElementById("mp-fill").style.width = state.mp + "%";
-    document.getElementById("map").style.transform = `translate(${innerWidth/2 - state.px}px, ${innerHeight/2 - state.py}px)`;
+    // ===== PLAYER MOVE MƯỢT =====
+    if(!state.inBattle){
+        if(keys['w']) state.py -= speed;
+        if(keys['s']) state.py += speed;
+        if(keys['a']) state.px -= speed;
+        if(keys['d']) state.px += speed;
 
-    requestAnimationFrame(update);
+        checkCollision();
+    }
+
+    // ===== PLAYER =====
+    player.style.left = state.px + "px";
+    player.style.top  = state.py + "px";
+    player.style.zIndex = Math.floor(state.py);
+    // ===== ZOOM =====
+const z = state.inBattle ? 1.3 : 1;
+
+// ===== SHOP NPC POSITION =====
+const shop = document.getElementById("shopNpc");
+shop.style.left = state.shopX + "px";
+shop.style.top  = state.shopY + "px";
+
+    const vw = window.visualViewport.width;
+const vh = window.visualViewport.height;
+
+const mapW = 3000;
+const mapH = 3000;
+
+// tâm camera
+let camX = state.px;
+let camY = state.py;
+
+// 👉 CHẶN không cho ra ngoài biên
+camX = Math.max(vw/2/z, Math.min(mapW - vw/2/z, camX));
+camY = Math.max(vh/2/z, Math.min(mapH - vh/2/z, camY));
+
+map.style.transform = `
+scale(${z})
+translate3d(
+    ${vw/2/z - camX}px,
+    ${vh/2/z - camY}px,
+    0
+)`;
+
+drops.forEach(d=>d.update());
+
+drawMiniMap();
+// update mob hp bars (PRO STYLE)
+mobs.forEach(m=>{
+
+    if(!m.alive || !m.el.hpFill) return;
+
+    const bar = m.el.querySelector(".hpbar");
+
+    // update width
+    m.el.hpFill.style.width =
+        (m.hp/m.maxHp*100)+"%";
+
+    // ⭐ chỉ hiện khi:
+    // target HOẶC đã bị đánh
+    if(state.target === m || m.hp < m.maxHp){
+        bar.classList.add("show");
+    }else{
+        bar.classList.remove("show");
+    }
+
+});
+
+
+checkShop();
+updatePet();
+
+    requestAnimationFrame(loop);
 }
 
-function triggerRespawn() {
-    state.isDead = true;
-    const screen = document.getElementById("respawn-screen");
-    const timerTxt = document.getElementById("respawn-timer");
-    screen.style.display = "flex";
-    let count = 5;
-    const interval = setInterval(() => {
-        count--;
-        timerTxt.innerText = count;
-        if(count <= 0) {
-            clearInterval(interval);
-            state.hp = 100; state.mp = 100;
-            state.px = 1500; state.py = 1500;
-            state.isDead = false;
-            screen.style.display = "none";
-        }
-    }, 1000);
-}
+</script>
+<script src="js/pet.js"></script>
+<script src="js/loot.js"></script>
+<script src="js/bag.js"></script>
 
-function toggleInv() {
-    const ui = document.getElementById("inventory-ui");
-    ui.style.display = ui.style.display === "block" ? "none" : "block";
-}
 
-window.onkeydown = e => state.keys[e.key.toLowerCase()] = true;
-window.onkeyup = e => state.keys[e.key.toLowerCase()] = false;
-
-// Start
-requestAnimationFrame(update);
+<script>
+spawn();
+loop();
 </script>
 </body>
 </html>
